@@ -2,6 +2,42 @@ const mongoose = require("mongoose");
 const Exam = require("../models/Exam");
 const { logActivity } = require("../services/activityLogger");
 
+const parseSemester = (value) => {
+    if (value === undefined || value === null || value === "") {
+        return null;
+    }
+
+    if (typeof value === "number") {
+        return value;
+    }
+
+    const match = String(value).match(/\d+/);
+
+    return match ? Number(match[0]) : null;
+};
+
+const parseDuration = (value) => {
+    if (value === undefined || value === null || value === "") {
+        return null;
+    }
+
+    if (typeof value === "number") {
+        return value;
+    }
+
+    const match = String(value).match(/\d+/);
+
+    return match ? Number(match[0]) : null;
+};
+
+const normalizeStatus = (value) => {
+    if (!value) {
+        return "scheduled";
+    }
+
+    return String(value).toLowerCase();
+};
+
 const createExam = async (req, res) => {
     try {
         const {
@@ -12,6 +48,7 @@ const createExam = async (req, res) => {
             semester,
             academicYear,
             examDate,
+            date,
             startTime,
             endTime,
             venue,
@@ -20,38 +57,58 @@ const createExam = async (req, res) => {
             status
         } = req.body;
 
+        const normalizedSemester = parseSemester(semester);
+        const normalizedDuration = parseDuration(duration);
+        const normalizedExamDate = examDate || date;
+        const normalizedStatus = normalizeStatus(status);
+
         if (
             !title ||
             !subject ||
             !department ||
             !program ||
-            !semester ||
+            !normalizedSemester ||
             !academicYear ||
-            !examDate ||
+            !normalizedExamDate ||
             !startTime ||
             !endTime ||
             !venue ||
-            !duration
+            !normalizedDuration
         ) {
             return res.status(400).json({
                 message: "All required exam fields must be provided"
             });
         }
 
+        if (
+            normalizedSemester < 1 ||
+            normalizedSemester > 12
+        ) {
+            return res.status(400).json({
+                message: "Semester must be between 1 and 12"
+            });
+        }
+
+        if (normalizedDuration < 1) {
+            return res.status(400).json({
+                message: "Duration must be greater than 0"
+            });
+        }
+
         const exam = await Exam.create({
-            title,
-            subject,
-            department,
-            program,
-            semester,
-            academicYear,
-            examDate,
+            title: String(title).trim(),
+            subject: String(subject).trim(),
+            department: String(department).trim(),
+            program: String(program).trim(),
+            semester: normalizedSemester,
+            academicYear: String(academicYear).trim(),
+            examDate: normalizedExamDate,
             startTime,
             endTime,
-            venue,
-            duration,
+            venue: String(venue).trim(),
+            duration: normalizedDuration,
             instructions: instructions || "",
-            status: status || "scheduled",
+            status: normalizedStatus,
             createdBy: req.user.userId
         });
 
@@ -69,7 +126,7 @@ const createExam = async (req, res) => {
             exam
         });
     } catch (error) {
-        console.error("Create exam error:", error.message);
+        console.error("Create exam error:", error);
 
         res.status(500).json({
             message: "Server error while creating exam"
@@ -111,7 +168,10 @@ const getExamById = async (req, res) => {
         const exam = await Exam.findOne({
             _id: id,
             isArchived: false
-        }).populate("createdBy", "name email role");
+        }).populate(
+            "createdBy",
+            "name email role"
+        );
 
         if (!exam) {
             return res.status(404).json({
@@ -149,6 +209,7 @@ const updateExam = async (req, res) => {
             "semester",
             "academicYear",
             "examDate",
+            "date",
             "startTime",
             "endTime",
             "venue",
@@ -165,9 +226,55 @@ const updateExam = async (req, res) => {
             }
         }
 
+        if (updates.date && !updates.examDate) {
+            updates.examDate = updates.date;
+            delete updates.date;
+        }
+
+        if (updates.semester !== undefined) {
+            const normalizedSemester =
+                parseSemester(updates.semester);
+
+            if (
+                normalizedSemester === null ||
+                normalizedSemester < 1 ||
+                normalizedSemester > 12
+            ) {
+                return res.status(400).json({
+                    message:
+                        "Semester must be between 1 and 12"
+                });
+            }
+
+            updates.semester = normalizedSemester;
+        }
+
+        if (updates.duration !== undefined) {
+            const normalizedDuration =
+                parseDuration(updates.duration);
+
+            if (
+                normalizedDuration === null ||
+                normalizedDuration < 1
+            ) {
+                return res.status(400).json({
+                    message:
+                        "Duration must be greater than 0"
+                });
+            }
+
+            updates.duration = normalizedDuration;
+        }
+
+        if (updates.status) {
+            updates.status =
+                normalizeStatus(updates.status);
+        }
+
         if (Object.keys(updates).length === 0) {
             return res.status(400).json({
-                message: "No valid fields provided for update"
+                message:
+                    "No valid fields provided for update"
             });
         }
 
@@ -181,7 +288,10 @@ const updateExam = async (req, res) => {
                 new: true,
                 runValidators: true
             }
-        ).populate("createdBy", "name email role");
+        ).populate(
+            "createdBy",
+            "name email role"
+        );
 
         if (!exam) {
             return res.status(404).json({
@@ -203,7 +313,7 @@ const updateExam = async (req, res) => {
             exam
         });
     } catch (error) {
-        console.error("Update exam error:", error.message);
+        console.error("Update exam error:", error);
 
         res.status(500).json({
             message: "Server error while updating exam"
@@ -253,10 +363,11 @@ const deleteExam = async (req, res) => {
             message: "Exam archived successfully"
         });
     } catch (error) {
-        console.error("Archive exam error:", error.message);
+        console.error("Archive exam error:", error);
 
         res.status(500).json({
-            message: "Server error while archiving exam"
+            message:
+                "Server error while archiving exam"
         });
     }
 };
