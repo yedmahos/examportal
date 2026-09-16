@@ -14,7 +14,8 @@ const profileRoutes = require("./routes/profileRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const activityRoutes = require("./routes/activityRoutes");
 
-// App
+const ActivityLog = require("./models/ActivityLog");
+
 const app = express();
 
 // Request middleware
@@ -39,7 +40,33 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+
+// Activity routes
 app.use("/api/activities", activityRoutes);
+
+// Activity test route
+app.get("/api/activity-test", async (req, res) => {
+    try {
+        const activities = await ActivityLog.find()
+            .populate("user", "name email role")
+            .sort({ createdAt: -1 })
+            .limit(20);
+
+        res.status(200).json({
+            count: activities.length,
+            activities
+        });
+    } catch (error) {
+        console.error(
+            "Activity test error:",
+            error.message
+        );
+
+        res.status(500).json({
+            message: "Activity test failed"
+        });
+    }
+});
 
 // Unknown route handler
 app.use((req, res) => {
@@ -50,7 +77,10 @@ app.use((req, res) => {
 
 // Global error handler
 app.use((error, req, res, next) => {
-    console.error("Server error:", error.message);
+    console.error(
+        "Server error:",
+        error.message
+    );
 
     res.status(500).json({
         message: "Internal server error"
@@ -63,14 +93,26 @@ const PORT = process.env.PORT || 5000;
 mongoose
     .connect(process.env.MONGODB_URI)
     .then(() => {
-        console.log("MongoDB connected successfully");
+        console.log(
+            "MongoDB connected successfully"
+        );
 
-        app.listen(PORT, "0.0.0.0", () => {
-            console.log(`Server running on port ${PORT}`);
-        });
+        app.listen(
+            PORT,
+            "0.0.0.0",
+            () => {
+                console.log(
+                    `Server running on port ${PORT}`
+                );
+            }
+        );
     })
     .catch((error) => {
-        console.error("MongoDB connection failed:");
+        console.error(
+            "MongoDB connection failed:"
+        );
+
         console.error(error.message);
+
         process.exit(1);
     });

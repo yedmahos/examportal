@@ -1,0 +1,173 @@
+.form-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: var(--space-4);
+  gap: var(--space-1);
+}
+
+.form-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.form-required {
+  color: var(--color-error);
+}
+
+.form-control-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.form-error-msg {
+  font-size: var(--text-xs);
+  color: var(--color-error);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.form-helper-text {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* Input container */
+.input-container,
+.select-container,
+.textarea-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  transition: all var(--transition-fast);
+}
+
+.input-container:hover,
+.select-container:hover,
+.textarea-container:hover {
+  border-color: #D3D7E0;
+}
+
+.input-container:focus-within,
+.select-container:focus-within,
+.textarea-container:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(108, 93, 211, 0.12);
+}
+
+.input-error,
+.select-error,
+.textarea-error {
+  border-color: var(--color-error) !important;
+}
+
+.input-disabled,
+.select-disabled,
+.textarea-disabled {
+  background-color: var(--color-surface-alt);
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Input element */
+.input-element {
+  width: 100%;
+  height: 42px;
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  background: transparent;
+  border: none;
+  outline: none;
+  border-radius: inherit;
+}
+
+.input-element::placeholder {
+  color: var(--color-text-muted);
+}
+
+.input-element.with-left-icon {
+  padding-left: 38px;
+}
+
+.input-element.with-right-icon {
+  padding-right: 38px;
+}
+
+.input-icon-left {
+  position: absolute;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.input-icon-right {
+  position: absolute;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.input-icon-right.clickable {
+  cursor: pointer;
+}
+
+.input-icon-right.clickable:hover {
+  color: var(--color-text-primary);
+}
+
+/* Select element */
+.select-element {
+  width: 100%;
+  height: 42px;
+  padding: 0 36px 0 var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  background: transparent;
+  border: none;
+  outline: none;
+  border-radius: inherit;
+  appearance: none;
+  cursor: pointer;
+}
+
+.select-chevron {
+  position: absolute;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+/* Textarea element */
+.textarea-element {
+  width: 100%;
+  padding: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  background: transparent;
+  border: none;
+  outline: none;
+  border-radius: inherit;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.textarea-element::placeholder {
+  color: var(--color-text-muted);
+}

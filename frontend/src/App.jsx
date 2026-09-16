@@ -1,11 +1,19 @@
-import React from 'react'
+import React from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './components/common/Toast';
+import AppRoutes from './routes/AppRoutes';
 
 function App() {
   return (
-    <div className="app">
-      <h1>Exam Portal</h1>
-    </div>
-  )
+    <BrowserRouter>
+      <AuthProvider>
+        <ToastProvider>
+          <AppRoutes />
+        </ToastProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
