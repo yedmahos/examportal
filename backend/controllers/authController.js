@@ -2,6 +2,24 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
+const parseSemester = (value) => {
+    if (
+        value === undefined ||
+        value === null ||
+        value === ""
+    ) {
+        return null;
+    }
+
+    if (typeof value === "number") {
+        return value;
+    }
+
+    const match = String(value).match(/\d+/);
+
+    return match ? Number(match[0]) : null;
+};
+
 const registerUser = async (req, res) => {
     try {
         const {
@@ -18,72 +36,152 @@ const registerUser = async (req, res) => {
 
         if (!name || !email || !password) {
             return res.status(400).json({
-                message: "Name, email and password are required"
+                message:
+                    "Name, email and password are required"
             });
         }
 
-        const existingUser = await User.findOne({
-            email: email.toLowerCase()
-        });
+        const normalizedEmail =
+            email.trim().toLowerCase();
 
-        if (existingUser) {
-            return res.status(409).json({
-                message: "User with this email already exists"
-            });
-        }
+        const normalizedSemester =
+            parseSemester(semester);
 
-        if (studentId) {
-            const existingStudent = await User.findOne({
-                studentId
-            });
-
-            if (existingStudent) {
-                return res.status(409).json({
-                    message: "Student ID already exists"
+        if (normalizedSemester !== null) {
+            if (
+                normalizedSemester < 1 ||
+                normalizedSemester > 12
+            ) {
+                return res.status(400).json({
+                    message:
+                        "Semester must be between 1 and 12"
                 });
             }
         }
 
-        const hashedPassword = await bcrypt.hash(
-            password,
-            12
-        );
+        const existingUser = await User.findOne({
+            email: normalizedEmail
+        });
+
+        if (existingUser) {
+            return res.status(409).json({
+                message:
+                    "User with this email already exists"
+            });
+        }
+
+        if (studentId) {
+            const existingStudent =
+                await User.findOne({
+                    studentId: studentId.trim()
+                });
+
+            if (existingStudent) {
+                return res.status(409).json({
+                    message:
+                        "Student ID already exists"
+                });
+            }
+        }
+
+        const hashedPassword =
+            await bcrypt.hash(password, 12);
 
         const user = await User.create({
-            name,
-            email: email.toLowerCase(),
+            name: name.trim(),
+            email: normalizedEmail,
             password: hashedPassword,
             role: "student",
-            studentId,
-            department,
-            program,
-            semester,
-            academicYear,
-            phone,
+            studentId: studentId
+                ? studentId.trim()
+                : undefined,
+            department: department
+                ? department.trim()
+                : undefined,
+            program: program
+                ? program.trim()
+                : undefined,
+            semester: normalizedSemester,
+            academicYear: academicYear
+                ? academicYear.trim()
+                : undefined,
+            phone: phone
+                ? phone.trim()
+                : undefined,
             status: "active"
         });
 
+        // Create login token
+        const token = jwt.sign(
+            {
+                userId: user._id,
+                role: user.role
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: "7d"
+            }
+        );
+
         res.status(201).json({
-            message: "User registered successfully",
+            message:
+                "User registered successfully",
+            token,
             user: {
                 id: user._id,
                 name: user.name,
                 email: user.email,
                 role: user.role,
-                studentId: user.studentId
+                studentId: user.studentId,
+                department: user.department,
+                program: user.program,
+                semester: user.semester,
+                academicYear:
+                    user.academicYear,
+                phone: user.phone
             }
         });
     } catch (error) {
-        console.error("Registration error:", error.message);
+        console.error(
+            "Registration error:",
+            error.message
+        );
 
         if (error.code === 11000) {
             return res.status(409).json({
-                message: "Email or student ID already exists"
+                message:
+                    "Email or student ID already exists"
+            });
+        }
+
+        if (
+            error.name ===
+            "ValidationError"
+        ) {
+            return res.status(400).json({
+                message:
+                    "Invalid registration data",
+                errors: Object.values(
+                    error.errors
+                ).map(
+                    (item) => item.message
+                )
+            });
+        }
+
+        if (
+            error.name ===
+            "CastError"
+        ) {
+            return res.status(400).json({
+                message:
+                    "Invalid registration field format"
             });
         }
 
         res.status(500).json({
-            message: "Server error during registration"
+            message:
+                "Server error during registration"
         });
     }
 };
@@ -94,17 +192,19 @@ const loginUser = async (req, res) => {
 
         if (!email || !password) {
             return res.status(400).json({
-                message: "Email and password are required"
+                message:
+                    "Email and password are required"
             });
         }
 
         const user = await User.findOne({
-            email: email.toLowerCase()
+            email: email.trim().toLowerCase()
         }).select("+password");
 
         if (!user) {
             return res.status(401).json({
-                message: "Invalid email or password"
+                message:
+                    "Invalid email or password"
             });
         }
 
@@ -114,14 +214,16 @@ const loginUser = async (req, res) => {
             });
         }
 
-        const isPasswordValid = await bcrypt.compare(
-            password,
-            user.password
-        );
+        const isPasswordValid =
+            await bcrypt.compare(
+                password,
+                user.password
+            );
 
         if (!isPasswordValid) {
             return res.status(401).json({
-                message: "Invalid email or password"
+                message:
+                    "Invalid email or password"
             });
         }
 
@@ -144,14 +246,24 @@ const loginUser = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 role: user.role,
-                studentId: user.studentId
+                studentId: user.studentId,
+                department: user.department,
+                program: user.program,
+                semester: user.semester,
+                academicYear:
+                    user.academicYear,
+                phone: user.phone
             }
         });
     } catch (error) {
-        console.error("Login error:", error.message);
+        console.error(
+            "Login error:",
+            error.message
+        );
 
         res.status(500).json({
-            message: "Server error during login"
+            message:
+                "Server error during login"
         });
     }
 };

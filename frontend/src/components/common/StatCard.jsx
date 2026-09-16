@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MoreHorizontal } from 'lucide-react';
 import './Card.css';
 
@@ -13,10 +14,42 @@ const StatCard = ({
   delta,
   deltaType = 'positive', // 'positive' | 'negative' | 'neutral' | 'purple'
   onOptionsClick,
+  onClick,
+  to,
   className = '',
 }) => {
+  const navigate = useNavigate();
+
+  const handleMoreClick = (e) => {
+    e.stopPropagation();
+    if (onOptionsClick) {
+      onOptionsClick(e);
+    } else if (to) {
+      navigate(to);
+    }
+  };
+
+  const handleCardClick = (e) => {
+    if (onClick) {
+      onClick(e);
+    } else if (to) {
+      navigate(to);
+    }
+  };
+
   return (
-    <div className={`stat-card ${className}`}>
+    <div
+      className={`stat-card ${to || onClick ? 'stat-card-clickable' : ''} ${className}`}
+      onClick={handleCardClick}
+      role={to || onClick ? 'button' : undefined}
+      tabIndex={to || onClick ? 0 : undefined}
+      onKeyDown={(e) => {
+        if ((to || onClick) && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          handleCardClick(e);
+        }
+      }}
+    >
       <div className="stat-card-top">
         <div className="stat-card-title-group">
           {Icon && (
@@ -29,8 +62,9 @@ const StatCard = ({
         <button
           type="button"
           className="stat-more-btn"
-          aria-label="More options"
-          onClick={onOptionsClick}
+          aria-label={`View details for ${title}`}
+          title={`View details for ${title}`}
+          onClick={handleMoreClick}
         >
           <MoreHorizontal size={16} />
         </button>

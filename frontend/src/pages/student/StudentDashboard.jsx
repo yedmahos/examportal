@@ -71,6 +71,7 @@ const StudentDashboard = () => {
           caption="Compared To Last Semester"
           delta={summary.creditsDelta}
           deltaType="positive"
+          to="/results"
         />
 
         <StatCard
@@ -83,6 +84,7 @@ const StudentDashboard = () => {
           caption="Compared To Last Semester"
           delta={summary.gpaDelta}
           deltaType="negative"
+          to="/results"
         />
 
         <StatCard
@@ -95,6 +97,7 @@ const StudentDashboard = () => {
           caption="Active Courses This Semester"
           delta="+3 Active Papers"
           deltaType="positive"
+          to="/exams"
         />
       </div>
 

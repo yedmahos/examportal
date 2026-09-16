@@ -64,6 +64,7 @@ const AdminDashboard = () => {
           caption="Enrolled Candidates"
           delta={stats.totalStudentsDelta}
           deltaType="positive"
+          to="/admin/students"
         />
 
         <StatCard
@@ -75,6 +76,7 @@ const AdminDashboard = () => {
           caption="Scheduled Sessions"
           delta={stats.totalExamsDelta}
           deltaType="neutral"
+          to="/admin/exams"
         />
 
         <StatCard
@@ -86,6 +88,7 @@ const AdminDashboard = () => {
           caption="Pending Invigilation"
           delta={stats.upcomingDelta}
           deltaType="positive"
+          to="/admin/exams?status=Scheduled"
         />
 
         <StatCard
@@ -97,6 +100,7 @@ const AdminDashboard = () => {
           caption="Conducted & Sealed"
           delta={stats.completedDelta}
           deltaType="positive"
+          to="/admin/exams?status=Completed"
         />
 
         <StatCard
@@ -109,6 +113,7 @@ const AdminDashboard = () => {
           caption="Final Transcripts"
           delta={stats.resultsDelta}
           deltaType="positive"
+          to="/admin/results"
         />
 
         <StatCard
@@ -120,6 +125,7 @@ const AdminDashboard = () => {
           caption="Notices on Portal"
           delta={stats.activeAnnouncementsDelta}
           deltaType="neutral"
+          to="/admin/announcements"
         />
       </div>
 

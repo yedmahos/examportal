@@ -64,6 +64,15 @@
   box-shadow: 0 6px 16px rgba(16, 24, 40, 0.08);
 }
 
+.stat-card-clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.stat-card-clickable:hover {
+  border-color: var(--color-primary-subtle, #D6BBFB);
+}
+
 .stat-card-top {
   display: flex;
   align-items: center;

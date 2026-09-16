@@ -31,12 +31,13 @@ const STATUSES = ['All', 'Scheduled', 'In Progress', 'Completed', 'Postponed', '
 const AdminExams = () => {
   const [searchParams] = useSearchParams();
   const initialQ = searchParams.get('q') || '';
+  const initialStatus = searchParams.get('status') || 'All';
 
   const [exams, setExams] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState(initialQ);
   const [department, setDepartment] = useState('All');
-  const [status, setStatus] = useState('All');
+  const [status, setStatus] = useState(initialStatus);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
