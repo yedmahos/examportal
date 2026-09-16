@@ -11,6 +11,7 @@ const {
 
 const router = express.Router();
 
+// Get recent activities
 router.get(
     "/",
     protect,

@@ -12,10 +12,14 @@ const getRecentActivities = async (req, res) => {
             activities
         });
     } catch (error) {
-        console.error("Get activities error:", error.message);
+        console.error(
+            "Get activities error:",
+            error.message
+        );
 
         res.status(500).json({
-            message: "Server error while fetching activities"
+            message:
+                "Server error while fetching activities"
         });
     }
 };
