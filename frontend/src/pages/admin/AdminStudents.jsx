@@ -164,9 +164,13 @@ const AdminStudents = () => {
 
     setConfirmDialog(prev => ({ ...prev, isLoading: true }));
     try {
-      await studentService.toggleStatus(student.id);
-      const nextStatus = student.status === 'Active' ? 'Inactive' : 'Active';
-      await activityService.log('Changed Student Status', student.name, `Student status updated to ${nextStatus}`, 'Admin Officer', 'students');
+      const nextStatus = student.status === 'active' ? 'inactive' : 'active';
+      await studentService.toggleStatus(student.id || student._id, nextStatus);
+      try {
+        await activityService.log('Changed Student Status', student.name, `Student status updated to ${nextStatus}`, 'Admin Officer', 'students');
+      } catch (logErr) {
+        console.warn('Activity log failed:', logErr);
+      }
       showToast(`Student record is now ${nextStatus}`, 'success');
       setConfirmDialog({ isOpen: false, student: null, isLoading: false });
       fetchStudents();
@@ -237,11 +241,12 @@ const AdminStudents = () => {
           </button>
           <button
             type="button"
-            className={`row-action-btn ${row.status === 'Active' ? 'btn-warn-action' : 'btn-success-action'}`}
-            title={row.status === 'Active' ? 'Deactivate student' : 'Activate student'}
+            className={`row-action-btn ${row.status === 'active' ? 'btn-warn-action' : 'btn-success-action'}`}
+            title={row.status === 'active' ? 'Deactivate student' : 'Activate student'}
+            aria-label={row.status === 'active' ? 'Deactivate student' : 'Activate student'}
             onClick={() => setConfirmDialog({ isOpen: true, student: row, isLoading: false })}
           >
-            {row.status === 'Active' ? <UserX size={15} /> : <UserCheck size={15} />}
+            {row.status === 'active' ? <UserX size={15} /> : <UserCheck size={15} />}
           </button>
         </div>
       ),
@@ -454,15 +459,15 @@ const AdminStudents = () => {
       {/* Confirmation Dialog for Status Change */}
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        title={confirmDialog.student?.status === 'Active' ? 'Deactivate Student Account?' : 'Activate Student Account?'}
+        title={confirmDialog.student?.status === 'active' ? 'Deactivate Student Account?' : 'Activate Student Account?'}
         message={
-          confirmDialog.student?.status === 'Active'
+          confirmDialog.student?.status === 'active'
             ? `Are you sure you want to deactivate ${confirmDialog.student?.name} (${confirmDialog.student?.studentId})? The student will be temporarily blocked from viewing exam schedules and marks.`
             : `Are you sure you want to restore active standing for ${confirmDialog.student?.name}?`
         }
-        confirmText={confirmDialog.student?.status === 'Active' ? 'Deactivate' : 'Activate'}
-        confirmVariant={confirmDialog.student?.status === 'Active' ? 'danger' : 'primary'}
-        type={confirmDialog.student?.status === 'Active' ? 'warning' : 'info'}
+        confirmText={confirmDialog.student?.status === 'active' ? 'Deactivate' : 'Activate'}
+        confirmVariant={confirmDialog.student?.status === 'active' ? 'danger' : 'primary'}
+        type={confirmDialog.student?.status === 'active' ? 'warning' : 'info'}
         isLoading={confirmDialog.isLoading}
         onConfirm={handleConfirmToggleStatus}
         onCancel={() => setConfirmDialog({ isOpen: false, student: null, isLoading: false })}

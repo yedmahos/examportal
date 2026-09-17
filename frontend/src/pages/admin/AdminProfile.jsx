@@ -28,7 +28,7 @@ const AdminProfile = () => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      const res = await profileService.updateProfile(user?.id, form);
+      const res = await profileService.updateProfile(form);
       updateUser(res.data);
       setIsModalOpen(false);
       showToast('Admin profile updated successfully', 'success');

@@ -80,8 +80,8 @@ export const studentService = {
   },
 
   // Toggle student status
-  async toggleStatus(id) {
-    const response = await patch(`/students/${id}/status`);
+  async toggleStatus(id, status) {
+    const response = await patch(`/students/${id}/status`, { status });
 
     return {
       success: true,
