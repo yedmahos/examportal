@@ -67,10 +67,8 @@ const StudentDashboard = () => {
           iconBg="#EFEBFC"
           title="Credits Completed"
           value={summary.creditsCompleted}
-          subValue={summary.totalCredits}
+          subValue={summary.creditsCompleted !== "N/A" && summary.totalCredits !== "N/A" ? summary.totalCredits : undefined}
           caption="Compared To Last Semester"
-          delta={summary.creditsDelta}
-          deltaType="positive"
           to="/results"
         />
 
@@ -80,10 +78,8 @@ const StudentDashboard = () => {
           iconBg="#FFEBF0"
           title="Grade Point Average"
           value={typeof summary.gpa === 'number' ? summary.gpa.toFixed(2) : summary.gpa}
-          subValue={typeof summary.maxGpa === 'number' ? summary.maxGpa.toFixed(2) : summary.maxGpa}
+          subValue={typeof summary.gpa === 'number' && typeof summary.maxGpa === 'number' ? summary.maxGpa.toFixed(2) : undefined}
           caption="Compared To Last Semester"
-          delta={summary.gpaDelta}
-          deltaType="negative"
           to="/results"
         />
 

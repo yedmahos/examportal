@@ -157,7 +157,9 @@ const StudentResults = () => {
         <div className="ribbon-divider" />
         <div className="ribbon-stat-item">
           <span className="ribbon-label">Credits Completed</span>
-          <span className="ribbon-value">{user?.creditsCompleted ? `${user.creditsCompleted} / ${user.totalCredits || 'N/A'}` : 'N/A'}</span>
+          <span className="ribbon-value">
+            {user?.creditsCompleted && user?.totalCredits ? `${user.creditsCompleted} / ${user.totalCredits}` : (user?.creditsCompleted || 'N/A')}
+          </span>
         </div>
         <div className="ribbon-divider" />
         <div className="ribbon-stat-item">
