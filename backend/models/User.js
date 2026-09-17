@@ -70,6 +70,31 @@ const userSchema = new mongoose.Schema(
             type: String,
             enum: ["active", "inactive"],
             default: "active"
+        },
+
+        gpa: {
+            type: Number,
+            min: 0,
+            max: 4,
+            default: null
+        },
+
+        creditsCompleted: {
+            type: Number,
+            min: 0,
+            default: null
+        },
+
+        totalCredits: {
+            type: Number,
+            min: 0,
+            default: null
+        },
+
+        academicStanding: {
+            type: String,
+            trim: true,
+            default: ""
         }
     },
     {

@@ -102,7 +102,11 @@ export const studentService = {
       program: data.program,
       semester: data.semester,
       academicYear: data.academicYear,
-      phone: data.phone
+      phone: data.phone,
+      gpa: data.gpa,
+      creditsCompleted: data.creditsCompleted,
+      totalCredits: data.totalCredits,
+      academicStanding: data.academicStanding
     };
 
     const response = await post("/students", payload);

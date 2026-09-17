@@ -130,12 +130,30 @@ const updateStudent = async (req, res) => {
             "semester",
             "academicYear",
             "phone",
-            "profileImage"
+            "profileImage",
+            "gpa",
+            "creditsCompleted",
+            "totalCredits",
+            "academicStanding"
         ];
 
         for (const field of allowedFields) {
             if (req.body[field] !== undefined) {
-                student[field] = req.body[field];
+                if (field === "gpa") {
+                    const val = req.body[field] === "" || req.body[field] === null ? null : Number(req.body[field]);
+                    if (val !== null && (isNaN(val) || val < 0 || val > 4)) {
+                        return res.status(400).json({ message: "GPA must be between 0 and 4" });
+                    }
+                    student[field] = val;
+                } else if (field === "creditsCompleted" || field === "totalCredits") {
+                    const val = req.body[field] === "" || req.body[field] === null ? null : Number(req.body[field]);
+                    if (val !== null && (isNaN(val) || val < 0)) {
+                        return res.status(400).json({ message: `${field} must be a positive number` });
+                    }
+                    student[field] = val;
+                } else {
+                    student[field] = req.body[field];
+                }
             }
         }
 

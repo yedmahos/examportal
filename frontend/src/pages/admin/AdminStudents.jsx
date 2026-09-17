@@ -110,6 +110,10 @@ const AdminStudents = () => {
       academicYear: '2025 - 2026',
       phone: '',
       status: 'Active',
+      gpa: '',
+      creditsCompleted: '',
+      totalCredits: '',
+      academicStanding: '',
     });
     setIsModalOpen(true);
   };
@@ -127,6 +131,10 @@ const AdminStudents = () => {
       academicYear: student.academicYear || '2025 - 2026',
       phone: student.phone || '',
       status: student.status || 'Active',
+      gpa: student.gpa !== undefined && student.gpa !== null ? student.gpa : '',
+      creditsCompleted: student.creditsCompleted !== undefined && student.creditsCompleted !== null ? student.creditsCompleted : '',
+      totalCredits: student.totalCredits !== undefined && student.totalCredits !== null ? student.totalCredits : '',
+      academicStanding: student.academicStanding || '',
     });
     setIsModalOpen(true);
   };
@@ -449,6 +457,54 @@ const AdminStudents = () => {
                   { value: 'Active', label: 'Active' },
                   { value: 'Inactive', label: 'Inactive' },
                 ]}
+                disabled={isSaving}
+              />
+            </FormField>
+          </div>
+
+          <div className="form-grid-two">
+            <FormField label="Cumulative GPA (0.00 - 4.00)">
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                max="4"
+                value={formData.gpa}
+                onChange={(e) => setFormData(prev => ({ ...prev, gpa: e.target.value }))}
+                placeholder="e.g. 3.75"
+                disabled={isSaving}
+              />
+            </FormField>
+
+            <FormField label="Academic Standing">
+              <Input
+                value={formData.academicStanding}
+                onChange={(e) => setFormData(prev => ({ ...prev, academicStanding: e.target.value }))}
+                placeholder="e.g. First Class Honours / Good"
+                disabled={isSaving}
+              />
+            </FormField>
+          </div>
+
+          <div className="form-grid-two">
+            <FormField label="Credits Completed">
+              <Input
+                type="number"
+                min="0"
+                value={formData.creditsCompleted}
+                onChange={(e) => setFormData(prev => ({ ...prev, creditsCompleted: e.target.value }))}
+                placeholder="e.g. 120"
+                disabled={isSaving}
+              />
+            </FormField>
+
+            <FormField label="Total Program Credits">
+              <Input
+                type="number"
+                min="0"
+                value={formData.totalCredits}
+                onChange={(e) => setFormData(prev => ({ ...prev, totalCredits: e.target.value }))}
+                placeholder="e.g. 144"
                 disabled={isSaving}
               />
             </FormField>

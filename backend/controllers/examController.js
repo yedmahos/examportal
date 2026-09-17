@@ -108,6 +108,7 @@ const createExam = async (req, res) => {
             startTime,
             endTime,
             venue: String(venue).trim(),
+            room: room ? String(room).trim() : "",
             duration: normalizedDuration,
             instructions: instructions || "",
             status: normalizedStatus,
