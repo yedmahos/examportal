@@ -14,6 +14,16 @@ const examSchema = new mongoose.Schema(
             trim: true
         },
 
+        examCode: {
+            type: String,
+            trim: true
+        },
+
+        room: {
+            type: String,
+            trim: true
+        },
+
         department: {
             type: String,
             required: true,

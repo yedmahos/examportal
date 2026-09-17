@@ -208,11 +208,13 @@ const updateExam = async (req, res) => {
             "program",
             "semester",
             "academicYear",
+            "examCode",
             "examDate",
             "date",
             "startTime",
             "endTime",
             "venue",
+            "room",
             "duration",
             "instructions",
             "status"
