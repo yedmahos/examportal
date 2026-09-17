@@ -52,7 +52,7 @@ const StudentExamDetail = () => {
     <div className="exam-detail-page animate-fade-in">
       <PageHeader
         title={exam.title}
-        subtitle={`${exam.examCode} • ${exam.department}`}
+        subtitle={`${exam.examCode || 'N/A'} • ${exam.department}`}
         backUrl="/exams"
         backText="Back to Schedule"
         badge={<StatusBadge status={exam.status} size="md" />}
@@ -70,7 +70,15 @@ const StudentExamDetail = () => {
               </div>
               <div className="spec-card-text">
                 <span className="spec-title">Exam Date</span>
-                <span className="spec-value">{exam.date}</span>
+                <span className="spec-value">
+                  {exam.examDate
+                    ? new Date(exam.examDate).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric"
+                      })
+                    : "N/A"}
+                </span>
               </div>
             </div>
 
@@ -136,7 +144,7 @@ const StudentExamDetail = () => {
               </div>
               <div className="meta-pair">
                 <span className="meta-k">Exam Code</span>
-                <span className="meta-v">{exam.examCode}</span>
+                <span className="meta-v">{exam.examCode || 'N/A'}</span>
               </div>
               <div className="meta-pair">
                 <span className="meta-k">Department</span>

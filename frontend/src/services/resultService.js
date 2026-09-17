@@ -53,6 +53,23 @@ export const resultService = {
     };
   },
 
+  // Get my results (student)
+  async getMyResults() {
+    const response = await get(`/results/my`);
+
+    const data = response.data || response;
+
+    return {
+      success: true,
+      data: {
+        items: data.items || data.results || [],
+        total: data.total || data.count || 0,
+        totalPages: 1 // My results doesn't have pagination yet
+      },
+      message: response.message || ""
+    };
+  },
+
   // Get result details
   async getById(id) {
     const response = await get(`/results/${id}`);

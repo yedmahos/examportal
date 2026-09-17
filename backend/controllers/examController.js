@@ -43,6 +43,7 @@ const createExam = async (req, res) => {
         const {
             title,
             subject,
+            examCode,
             department,
             program,
             semester,
@@ -98,6 +99,7 @@ const createExam = async (req, res) => {
         const exam = await Exam.create({
             title: String(title).trim(),
             subject: String(subject).trim(),
+            examCode: examCode ? String(examCode).trim() : "",
             department: String(department).trim(),
             program: String(program).trim(),
             semester: normalizedSemester,

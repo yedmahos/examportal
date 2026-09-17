@@ -26,16 +26,25 @@ const StudentResults = () => {
   const fetchResults = async () => {
     setIsLoading(true);
     try {
-      const res = await resultService.getAll({
-        studentId: user?.studentId,
-        search,
-        semester: semesterFilter === 'All' ? '' : semesterFilter,
-        page,
-        limit: 10,
-      });
-      setResults(res.data.items);
-      setTotal(res.data.total);
-      setTotalPages(res.data.totalPages);
+      const res = await resultService.getMyResults();
+      let items = res.data.items;
+      
+      // Simple client-side filtering since backend doesn't support query params for /my
+      if (search) {
+        const query = search.toLowerCase();
+        items = items.filter(item => 
+          item.exam?.subject?.toLowerCase().includes(query) ||
+          item.exam?.title?.toLowerCase().includes(query) ||
+          item.examCode?.toLowerCase().includes(query)
+        );
+      }
+      
+      if (semesterFilter !== 'All') {
+        items = items.filter(item => item.exam?.semester === semesterFilter || item.semester === semesterFilter);
+      }
+      setResults(items);
+      setTotal(items.length);
+      setTotalPages(1);
     } catch (err) {
       console.error('Failed to fetch results:', err);
     } finally {
@@ -133,12 +142,12 @@ const StudentResults = () => {
       <div className="results-overview-ribbon">
         <div className="ribbon-stat-item">
           <span className="ribbon-label">Cumulative GPA</span>
-          <span className="ribbon-value text-primary">{user?.gpa || '3.75'} / 4.00</span>
+          <span className="ribbon-value text-primary">{user?.gpa || 'N/A'}</span>
         </div>
         <div className="ribbon-divider" />
         <div className="ribbon-stat-item">
           <span className="ribbon-label">Credits Completed</span>
-          <span className="ribbon-value">{user?.creditsCompleted || 120} / {user?.totalCredits || 144}</span>
+          <span className="ribbon-value">{user?.creditsCompleted || 'N/A'} / {user?.totalCredits || 'N/A'}</span>
         </div>
         <div className="ribbon-divider" />
         <div className="ribbon-stat-item">

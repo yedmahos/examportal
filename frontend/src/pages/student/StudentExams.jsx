@@ -133,7 +133,15 @@ const StudentExams = () => {
                   <div className="exam-meta-row">
                     <Calendar size={14} className="meta-icon" />
                     <span className="meta-label">Date:</span>
-                    <span className="meta-value">{exam.date}</span>
+                    <span className="meta-value">
+                      {exam.examDate
+                        ? new Date(exam.examDate).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric"
+                          })
+                        : "N/A"}
+                    </span>
                   </div>
 
                   <div className="exam-meta-row">

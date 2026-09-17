@@ -79,8 +79,8 @@ const StudentDashboard = () => {
           iconColor="#FF6B81"
           iconBg="#FFEBF0"
           title="Grade Point Average"
-          value={summary.gpa.toFixed(2)}
-          subValue={summary.maxGpa.toFixed(2)}
+          value={typeof summary.gpa === 'number' ? summary.gpa.toFixed(2) : summary.gpa}
+          subValue={typeof summary.maxGpa === 'number' ? summary.maxGpa.toFixed(2) : summary.maxGpa}
           caption="Compared To Last Semester"
           delta={summary.gpaDelta}
           deltaType="negative"

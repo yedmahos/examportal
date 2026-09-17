@@ -10,15 +10,14 @@ const normalizeStudentDashboard = (response) => {
 
     summary: {
       creditsCompleted:
-        payload?.student?.creditsCompleted ?? 0,
+        payload?.student?.creditsCompleted || "N/A",
 
       totalCredits:
-        payload?.student?.totalCredits ?? 0,
+        payload?.student?.totalCredits || "N/A",
 
       creditsDelta: "",
 
-      gpa:
-        Number(payload?.student?.gpa ?? 0),
+      gpa: "N/A",
 
       maxGpa: 4,
 

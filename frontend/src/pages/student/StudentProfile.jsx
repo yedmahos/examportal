@@ -57,7 +57,7 @@ const StudentProfile = () => {
 
     setIsSaving(true);
     try {
-      const res = await profileService.updateProfile(user?.id, editForm);
+      const res = await profileService.updateProfile(editForm);
       setProfile(res.data);
       updateUser(res.data);
       setIsEditModalOpen(false);
@@ -111,11 +111,11 @@ const StudentProfile = () => {
 
           <div className="profile-quick-stats">
             <div className="p-stat-box">
-              <span className="p-stat-num text-primary">{profile.gpa ? profile.gpa.toFixed(2) : '3.75'}</span>
+              <span className="p-stat-num text-primary">{profile.gpa ? profile.gpa.toFixed(2) : 'N/A'}</span>
               <span className="p-stat-lbl">Cumulative GPA</span>
             </div>
             <div className="p-stat-box">
-              <span className="p-stat-num">{profile.creditsCompleted || 120}</span>
+              <span className="p-stat-num">{profile.creditsCompleted || 'N/A'}</span>
               <span className="p-stat-lbl">Credits Done</span>
             </div>
             <div className="p-stat-box">
@@ -157,7 +157,7 @@ const StudentProfile = () => {
 
               <div className="p-field-item">
                 <span className="p-field-label">Total Program Credits</span>
-                <span className="p-field-value">{profile.totalCredits || 144} Credits Required</span>
+                <span className="p-field-value">{profile.totalCredits ? `${profile.totalCredits} Credits Required` : 'N/A'}</span>
               </div>
 
               <div className="p-field-item">
