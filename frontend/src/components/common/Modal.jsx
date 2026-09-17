@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { X } from 'lucide-react';
 import './Modal.css';
 
@@ -30,7 +31,7 @@ const Modal = ({
 
   if (!isOpen) return null;
 
-  return (
+  return ReactDOM.createPortal(
     <div className="modal-backdrop animate-fade-in" onClick={onClose} role="dialog" aria-modal="true">
       <div
         className={`modal-container modal-${size} animate-slide-down ${className}`}
@@ -61,7 +62,8 @@ const Modal = ({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

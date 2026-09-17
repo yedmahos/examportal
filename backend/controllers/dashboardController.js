@@ -3,6 +3,7 @@ const Exam = require("../models/Exam");
 const Result = require("../models/Result");
 const Announcement = require("../models/Announcement");
 const Notification = require("../models/Notification");
+const ActivityLog = require("../models/ActivityLog");
 
 // Get student dashboard
 const getStudentDashboard = async (req, res) => {
@@ -201,6 +202,44 @@ const getAdminDashboard = async (req, res) => {
                 .sort({ createdAt: -1 })
                 .limit(5);
 
+        const recentActivities = await ActivityLog.find()
+            .populate("user", "name email role")
+            .sort({ createdAt: -1 })
+            .limit(5);
+
+        const examTrendsAggregation = await Exam.aggregate([
+            {
+                $match: { isArchived: false, examDate: { $ne: null } }
+            },
+            {
+                $group: {
+                    _id: {
+                        year: { $year: "$examDate" },
+                        month: { $month: "$examDate" }
+                    },
+                    scheduledCount: {
+                        $sum: { $cond: [{ $eq: ["$status", "scheduled"] }, 1, 0] }
+                    },
+                    completedCount: {
+                        $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] }
+                    }
+                }
+            },
+            {
+                $sort: { "_id.year": 1, "_id.month": 1 }
+            }
+        ]);
+
+        const examTrends = examTrendsAggregation.map(trend => {
+            const date = new Date(trend._id.year, trend._id.month - 1, 1);
+            const monthName = date.toLocaleString('default', { month: 'short' });
+            return {
+                label: monthName,
+                scheduled: trend.scheduledCount,
+                completed: trend.completedCount
+            };
+        });
+
         res.status(200).json({
             statistics: {
                 totalStudents,
@@ -212,7 +251,9 @@ const getAdminDashboard = async (req, res) => {
             },
             recentExams,
             recentResults,
-            recentAnnouncements
+            recentAnnouncements,
+            recentActivities,
+            examTrends
         });
     } catch (error) {
         console.error(

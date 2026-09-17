@@ -107,9 +107,27 @@ const normalizeAdminDashboard = (response) => {
         ? payload.recentAnnouncements
         : [],
 
-    recentActivities: [],
+    recentActivities:
+      Array.isArray(payload?.recentActivities)
+        ? payload.recentActivities.map((act) => ({
+            id: act.id || act._id,
+            action: act.action,
+            entity: act.entity,
+            description: act.description,
+            actor: act.user?.name || "System",
+            timestamp: act.createdAt,
+            status: "Completed",
+          }))
+        : [],
 
-    examTrends: [],
+    examTrends:
+      Array.isArray(payload?.examTrends)
+        ? payload.examTrends.map((trend) => ({
+            term: trend.label,
+            scheduled: trend.scheduled,
+            completed: trend.completed,
+          }))
+        : [],
 
     upcomingSchedule: []
   };

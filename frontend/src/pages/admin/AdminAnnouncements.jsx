@@ -125,11 +125,11 @@ const AdminAnnouncements = () => {
     try {
       if (modalMode === 'create') {
         await announcementService.create(formData);
-        await activityService.log('Published Announcement', formData.title, `Broadcasted circular notice to ${formData.audience}`, 'Admin Officer', 'announcements');
+        activityService.log('Published Announcement', formData.title, `Broadcasted circular notice to ${formData.audience}`, 'Admin Officer', 'announcements').catch(() => {});
         showToast('Announcement broadcasted successfully', 'success');
       } else {
         await announcementService.update(currentAnn.id, formData);
-        await activityService.log('Updated Announcement', formData.title, `Edited circular content`, 'Admin Officer', 'announcements');
+        activityService.log('Updated Announcement', formData.title, `Edited circular content`, 'Admin Officer', 'announcements').catch(() => {});
         showToast('Announcement updated', 'success');
       }
       setIsModalOpen(false);
@@ -145,11 +145,11 @@ const AdminAnnouncements = () => {
     try {
       if (ann.status === 'Published') {
         await announcementService.unpublish(ann.id);
-        await activityService.log('Unpublished Circular', ann.title, `Moved circular to draft status`, 'Admin Officer', 'announcements');
+        activityService.log('Unpublished Circular', ann.title, `Moved circular to draft status`, 'Admin Officer', 'announcements').catch(() => {});
         showToast('Announcement reverted to Draft', 'info');
       } else {
         await announcementService.publish(ann.id);
-        await activityService.log('Published Circular', ann.title, `Activated announcement on student portal`, 'Admin Officer', 'announcements');
+        activityService.log('Published Circular', ann.title, `Activated announcement on student portal`, 'Admin Officer', 'announcements').catch(() => {});
         showToast('Announcement published', 'success');
       }
       fetchAnnouncements();

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Calendar, Search, Plus, Edit2, Trash2, Archive, Eye, Clock, MapPin } from 'lucide-react';
 import { examService } from '../../services/examService';
-import { activityService } from '../../services/activityService';
 import PageHeader from '../../components/common/PageHeader';
 import SearchBar from '../../components/common/SearchBar';
 import Select from '../../components/common/Select';
@@ -140,7 +139,7 @@ const AdminExams = () => {
       program: exam.program || 'B.Sc. in Software Engineering',
       semester: exam.semester || '6th Semester',
       academicYear: exam.academicYear || '2025 - 2026',
-      date: exam.date || '',
+      date: exam.examDate ? exam.examDate.split('T')[0] : '',
       startTime: exam.startTime || '09:00 AM',
       endTime: exam.endTime || '12:00 PM',
       duration: exam.duration || '180 minutes',
@@ -151,15 +150,15 @@ const AdminExams = () => {
       credits: exam.credits || 4,
       invigilator: exam.invigilator || '',
       instructions: exam.instructions || '',
-      status: exam.status || 'Scheduled',
+      status: exam.status ? exam.status.charAt(0).toUpperCase() + exam.status.slice(1) : 'Scheduled',
     });
     setIsModalOpen(true);
   };
 
   const handleSaveExam = async (e) => {
     e.preventDefault();
-    if (!formData.title.trim() || !formData.date || !formData.examCode) {
-      showToast('Please provide exam title, code, and date', 'error');
+    if (!formData.title.trim() || !formData.date) {
+      showToast('Please provide exam title and date', 'error');
       return;
     }
 
@@ -167,11 +166,9 @@ const AdminExams = () => {
     try {
       if (modalMode === 'create') {
         await examService.create(formData);
-        await activityService.log('Scheduled New Exam', formData.title, `Configured timetable for ${formData.examCode}`, 'Admin Officer', 'exams');
         showToast('Exam scheduled successfully', 'success');
       } else {
         await examService.update(currentExam.id, formData);
-        await activityService.log('Updated Exam Timetable', formData.title, `Modified schedule for ${formData.examCode}`, 'Admin Officer', 'exams');
         showToast('Exam updated successfully', 'success');
       }
       setIsModalOpen(false);
@@ -187,10 +184,15 @@ const AdminExams = () => {
     const exam = deleteDialog.exam;
     if (!exam) return;
 
+    const examId = exam.id || exam._id;
+    if (!examId) {
+      showToast('Could not identify exam — please refresh and try again', 'error');
+      return;
+    }
+
     setDeleteDialog(prev => ({ ...prev, isLoading: true }));
     try {
-      await examService.delete(exam.id);
-      await activityService.log('Removed Exam Record', exam.title, `Removed exam session ${exam.examCode}`, 'Admin Officer', 'exams');
+      await examService.delete(examId);
       showToast('Exam record removed', 'success');
       setDeleteDialog({ isOpen: false, exam: null, isLoading: false });
       fetchExams();
@@ -204,52 +206,78 @@ const AdminExams = () => {
     {
       title: 'Code',
       key: 'examCode',
-      render: (val) => <span className="table-code-chip">{val}</span>,
+      width: '80px',
+      render: (val) => (
+        <span className="table-code-chip">
+          {val || 'N/A'}
+        </span>
+      ),
     },
     {
       title: 'Exam Title & Subject',
       key: 'title',
       render: (val, row) => (
         <div className="table-subject-cell">
-          <span className="subject-title">{row.subject}</span>
-          <span className="exam-full-name">{val}</span>
+          <span className="subject-title">{row.subject || '—'}</span>
+          <span className="exam-full-name">{val || '—'}</span>
         </div>
       ),
     },
     {
       title: 'Department',
       key: 'department',
-      render: (val) => <span className="table-dept-text">{val}</span>,
+      render: (val) => (
+        <span className="table-dept-text" title={val}>
+          {val || '—'}
+        </span>
+      ),
     },
     {
       title: 'Date & Time',
-      key: 'date',
-      render: (val, row) => (
-        <div className="table-time-col">
-          <span className="text-primary font-bold">{val}</span>
-          <span className="text-muted text-xs">{row.startTime} - {row.endTime}</span>
-        </div>
-      ),
+      key: 'examDate',
+      render: (val, row) => {
+        const dateStr = val
+          ? new Date(val).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+          : '—';
+        return (
+          <div className="table-time-col">
+            <span className="text-primary font-bold">{dateStr}</span>
+            <span className="text-muted text-xs">
+              {row.startTime || '—'} – {row.endTime || '—'}
+            </span>
+          </div>
+        );
+      },
     },
     {
       title: 'Venue & Room',
       key: 'venue',
       render: (val, row) => (
         <div className="table-venue-col">
-          <span className="venue-name">{val}</span>
-          <span className="room-name">({row.room})</span>
+          <span className="venue-name">{val || '—'}</span>
+          {row.room ? (
+            <span className="room-name">{row.room}</span>
+          ) : (
+            <span className="room-name room-unassigned">Room not assigned</span>
+          )}
         </div>
       ),
     },
     {
       title: 'Status',
       key: 'status',
-      render: (val) => <StatusBadge status={val} size="sm" />,
+      render: (val) => {
+        const display = val
+          ? val.charAt(0).toUpperCase() + val.slice(1)
+          : '';
+        return <StatusBadge status={display} size="sm" />;
+      },
     },
     {
       title: 'Actions',
       key: 'id',
       align: 'right',
+      width: '130px',
       render: (val, row) => (
         <div className="table-row-actions">
           <Link
@@ -404,7 +432,7 @@ const AdminExams = () => {
           </div>
 
           <div className="form-grid-three">
-            <FormField label="Exam Code" required>
+            <FormField label="Exam Code">
               <Input
                 value={formData.examCode}
                 onChange={(e) => setFormData(prev => ({ ...prev, examCode: e.target.value }))}
@@ -470,7 +498,7 @@ const AdminExams = () => {
               />
             </FormField>
 
-            <FormField label="Room Code" required>
+            <FormField label="Room Code">
               <Input
                 value={formData.room}
                 onChange={(e) => setFormData(prev => ({ ...prev, room: e.target.value }))}
@@ -534,7 +562,7 @@ const AdminExams = () => {
       <ConfirmDialog
         isOpen={deleteDialog.isOpen}
         title="Delete Examination Session?"
-        message={`Are you sure you want to remove "${deleteDialog.exam?.title}" (${deleteDialog.exam?.examCode}) from the timetable?`}
+        message={`Are you sure you want to remove "${deleteDialog.exam?.title}"${deleteDialog.exam?.subject ? ` (${deleteDialog.exam.subject})` : ''} from the timetable? This action cannot be undone.`}
         confirmText="Delete Exam"
         confirmVariant="danger"
         type="danger"

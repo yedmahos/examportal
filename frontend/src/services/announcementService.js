@@ -1,6 +1,6 @@
 // Announcement service
 
-import { get, post, put, del } from "./api";
+import { get, post, put, patch, del } from "./api";
 
 export const announcementService = {
   // Get announcements
@@ -36,7 +36,7 @@ export const announcementService = {
     const query = params.toString();
 
     const response = await get(
-      `/announcements${query ? `?${query}` : ""}`
+      `/announcements/all${query ? `?${query}` : ""}`
     );
 
     const data = response.data || response;
@@ -44,10 +44,14 @@ export const announcementService = {
     return {
       success: true,
       data: {
-        items:
+        items: (
           data.items ||
           data.announcements ||
-          (Array.isArray(data) ? data : []),
+          (Array.isArray(data) ? data : [])
+        ).map((a) => ({
+          ...a,
+          id: a.id || (a._id ? String(a._id) : undefined),
+        })),
         total: data.total || 0,
         page: data.page || page,
         limit: data.limit || limit,
@@ -73,17 +77,37 @@ export const announcementService = {
 
   // Create announcement
   async create(data) {
+    const CATEGORY_MAP = {
+      Examination: "exam",
+      Academic: "academic",
+      Administrative: "general",
+      Urgent: "important",
+      General: "general",
+      Result: "result",
+    };
+
+    const AUDIENCE_MAP = {
+      "All Students": "all",
+      "Students": "students",
+      "Admins": "admins",
+      "All": "all",
+    };
+
+    const rawAudience = data.targetAudience || data.audience || "all";
+
     const payload = {
       title: data.title,
       content: data.content,
-      category: data.category
-        ? data.category.toLowerCase()
-        : "general",
+      category:
+        CATEGORY_MAP[data.category] ||
+        (data.category ? data.category.toLowerCase() : "general"),
       priority: data.priority
         ? data.priority.toLowerCase()
         : "normal",
       targetAudience:
-        data.targetAudience || "all",
+        AUDIENCE_MAP[rawAudience] ||
+        rawAudience ||
+        "all",
       publishDate: data.publishDate || null,
       expiryDate: data.expiryDate || null,
       published:
@@ -111,17 +135,47 @@ export const announcementService = {
 
   // Update announcement
   async update(id, data) {
-    const payload = {
-      ...data
+    const CATEGORY_MAP = {
+      Examination: "exam",
+      Academic: "academic",
+      Administrative: "general",
+      Urgent: "important",
+      General: "general",
+      Result: "result",
     };
 
-    if (payload.category) {
-      payload.category = payload.category.toLowerCase();
-    }
+    const AUDIENCE_MAP = {
+      "All Students": "all",
+      "Students": "students",
+      "Admins": "admins",
+      "All": "all",
+    };
 
-    if (payload.priority) {
-      payload.priority = payload.priority.toLowerCase();
-    }
+    const rawAudience = data.audience || data.targetAudience || "all";
+
+    // Send only fields the backend allows; strip frontend-only fields
+    const payload = {
+      title: data.title,
+      content: data.content,
+      category:
+        CATEGORY_MAP[data.category] ||
+        (data.category ? data.category.toLowerCase() : undefined),
+      priority: data.priority
+        ? data.priority.toLowerCase()
+        : undefined,
+      targetAudience:
+        AUDIENCE_MAP[rawAudience] ||
+        rawAudience ||
+        "all",
+      publishDate: data.publishDate || undefined,
+      expiryDate: data.expiryDate || undefined,
+      published: data.published !== undefined ? data.published : undefined,
+    };
+
+    // Remove undefined keys so the backend whitelist filter works cleanly
+    Object.keys(payload).forEach(
+      (k) => payload[k] === undefined && delete payload[k]
+    );
 
     const response = await put(
       `/announcements/${id}`,
@@ -160,7 +214,7 @@ export const announcementService = {
 
   // Publish announcement
   async publish(id) {
-    const response = await put(
+    const response = await patch(
       `/announcements/${id}/publish`,
       {}
     );
@@ -179,7 +233,7 @@ export const announcementService = {
 
   // Unpublish announcement
   async unpublish(id) {
-    const response = await put(
+    const response = await patch(
       `/announcements/${id}/unpublish`,
       {}
     );

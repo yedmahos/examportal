@@ -22,7 +22,7 @@ export const examService = {
       params.append("semester", semester);
     }
     if (status && status !== "All") {
-      params.append("status", status);
+      params.append("status", status.toLowerCase());
     }
 
     params.append("page", page);
@@ -32,11 +32,17 @@ export const examService = {
 
     const data = response.data || response;
 
+    const rawItems = data.exams || data.items || [];
+    const normalizedItems = rawItems.map((exam) => ({
+      ...exam,
+      id: exam._id || exam.id,
+    }));
+
     return {
       success: true,
       data: {
-        items: data.items || [],
-        total: data.total || 0,
+        items: normalizedItems,
+        total: data.count || data.total || 0,
         page: data.page || page,
         limit: data.limit || limit,
         totalPages: data.totalPages || 1

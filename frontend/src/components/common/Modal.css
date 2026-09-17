@@ -1,6 +1,10 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   background-color: rgba(31, 34, 51, 0.45);
   backdrop-filter: blur(2px);
   display: flex;
@@ -46,6 +50,7 @@
   padding: var(--space-5) var(--space-6);
   border-bottom: 1px solid var(--color-border-subtle);
   background-color: var(--color-surface);
+  flex-shrink: 0;
 }
 
 .modal-title {
@@ -80,6 +85,7 @@
   padding: var(--space-6);
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
 }
 
 .modal-footer {
@@ -90,6 +96,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-3);
+  flex-shrink: 0;
 }
 
 /* Confirm modal specific */
