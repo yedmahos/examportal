@@ -17,9 +17,15 @@ const normalizeStudentDashboard = (response) => {
 
       creditsDelta: "",
 
-      gpa: "N/A",
+      gpa:
+        typeof payload?.student?.gpa === "number"
+          ? payload.student.gpa
+          : "N/A",
 
-      maxGpa: 4,
+      maxGpa:
+        typeof payload?.student?.gpa === "number"
+          ? 4
+          : "N/A",
 
       gpaDelta: "",
 

@@ -13,18 +13,22 @@ const NotificationItem = ({
     _id,
     id = _id,
     title,
-    sender = title || 'System',
-    senderAvatar,
     message,
-    actionText = message,
     createdAt,
     date,
-    timestamp = createdAt ? new Date(createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : date,
+    timestamp,
     isRead,
     attachment,
     type,
-    link,
   } = notification;
+
+  const displayTime = createdAt
+    ? new Date(createdAt).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      })
+    : timestamp || date || 'N/A';
 
   const getAttachmentIcon = (attType = '') => {
     switch (attType.toLowerCase()) {
@@ -68,13 +72,14 @@ const NotificationItem = ({
 
       <div className="notif-item-content-col">
         <div className="notif-item-header-text">
-          <span className="notif-sender-name">{sender} </span>
-          <span className="notif-action-text">{actionText}</span>
+          <span className="notif-sender-name">{title || 'Notification'}</span>
           {!isRead && <span className="notif-unread-dot" />}
         </div>
 
+        <div className="notif-action-text">{message}</div>
+
         <div className="notif-item-time-line">
-          {date ? `On ${date}` : timestamp}
+          {displayTime}
         </div>
 
         {attachment && (
