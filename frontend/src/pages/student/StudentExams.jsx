@@ -27,8 +27,8 @@ const StudentExams = () => {
 
   const tabs = [
     { id: 'All', label: 'All Exams' },
-    { id: 'Scheduled', label: 'Upcoming Schedule' },
-    { id: 'Completed', label: 'Completed Archive' },
+    { id: 'scheduled', label: 'Upcoming Schedule' },
+    { id: 'completed', label: 'Completed Archive' },
   ];
 
   const fetchExams = async () => {
@@ -36,7 +36,7 @@ const StudentExams = () => {
     try {
       const res = await examService.getAll({
         search,
-        status: activeTab === 'All' ? '' : activeTab,
+        status: activeTab === 'All' ? '' : activeTab.toLowerCase(),
         semester: semesterFilter === 'All' ? '' : semesterFilter,
         page,
         limit: 8,
@@ -153,13 +153,13 @@ const StudentExams = () => {
                   <div className="exam-meta-row">
                     <MapPin size={14} className="meta-icon" />
                     <span className="meta-label">Venue:</span>
-                    <span className="meta-value">{exam.venue}</span>
+                    <span className="meta-value">{exam.venue || "TBA"}</span>
                   </div>
 
                   <div className="exam-meta-row">
                     <Award size={14} className="meta-icon" />
-                    <span className="meta-label">Room / Credits:</span>
-                    <span className="meta-value">{exam.room} • {exam.credits} Credits</span>
+                    <span className="meta-label">Room:</span>
+                    <span className="meta-value">{exam.room || "TBA"}</span>
                   </div>
                 </div>
               </div>

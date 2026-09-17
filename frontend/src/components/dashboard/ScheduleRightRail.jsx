@@ -71,17 +71,11 @@ const ScheduleRightRail = ({
                 <div className="schedule-detail-row">
                   <div className="schedule-detail-label">
                     <MapPin size={13} />
-                    <span>Course Room</span>
+                    <span>Venue</span>
                   </div>
-                  <span className="schedule-detail-value">{exam.room || 'Auditorium'}</span>
-                </div>
-
-                <div className="schedule-detail-row">
-                  <div className="schedule-detail-label">
-                    <Award size={13} />
-                    <span>Course Credits</span>
-                  </div>
-                  <span className="schedule-detail-value">{exam.credits || 4} Credits</span>
+                  <span className="schedule-detail-value">
+                    {exam.venue ? (exam.room ? `${exam.venue} (Room: ${exam.room})` : exam.venue) : (exam.room ? `Room: ${exam.room}` : 'TBA')}
+                  </span>
                 </div>
               </div>
             </div>

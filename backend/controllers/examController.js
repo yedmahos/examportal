@@ -138,9 +138,36 @@ const createExam = async (req, res) => {
 
 const getAllExams = async (req, res) => {
     try {
-        const exams = await Exam.find({
-            isArchived: false
-        })
+        const { search, department, semester, status } = req.query;
+        const query = { isArchived: false };
+
+        if (search) {
+            query.$or = [
+                { title: { $regex: search, $options: "i" } },
+                { subject: { $regex: search, $options: "i" } },
+                { examCode: { $regex: search, $options: "i" } }
+            ];
+        }
+
+        if (department && department !== "All") {
+            query.department = department;
+        }
+
+        if (semester && semester !== "All") {
+            const semNum = parseSemester(semester);
+            if (semNum) query.semester = semNum;
+        }
+
+        if (status && status !== "All") {
+            const statusVal = String(status).toLowerCase();
+            if (statusVal === "upcoming" || statusVal === "scheduled") {
+                query.status = { $in: ["scheduled", "ongoing"] };
+            } else {
+                query.status = statusVal;
+            }
+        }
+
+        const exams = await Exam.find(query)
             .populate("createdBy", "name email role")
             .sort({ examDate: 1 });
 
