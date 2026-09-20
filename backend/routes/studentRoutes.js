@@ -3,6 +3,7 @@ const express = require("express");
 const {
     getAllStudents,
     getStudentById,
+    createStudent,
     updateStudent,
     updateStudentStatus
 } = require("../controllers/studentController");
@@ -21,6 +22,13 @@ router.get(
     protect,
     authorize("admin"),
     getAllStudents
+);
+
+router.post(
+    "/",
+    protect,
+    authorize("admin"),
+    createStudent
 );
 
 router.get(

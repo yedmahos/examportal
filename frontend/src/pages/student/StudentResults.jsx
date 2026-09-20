@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Award, Search, TrendingUp, CheckCircle, ExternalLink, Download } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { resultService } from '../../services/resultService';
+import { profileService } from '../../services/profileService';
 import PageHeader from '../../components/common/PageHeader';
 import SearchBar from '../../components/common/SearchBar';
 import Select from '../../components/common/Select';
@@ -15,6 +16,7 @@ import './StudentPages.css';
 const StudentResults = () => {
   const { user } = useAuth();
   const [results, setResults] = useState([]);
+  const [academic, setAcademic] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [semesterFilter, setSemesterFilter] = useState('All');
@@ -56,6 +58,25 @@ const StudentResults = () => {
     fetchResults();
   }, [user?.studentId, search, semesterFilter, page]);
 
+  // Academic standing figures come from the same source the Dashboard and
+  // Profile use: the authenticated user record served by the API.
+  useEffect(() => {
+    let cancelled = false;
+
+    profileService
+      .getProfile()
+      .then((res) => {
+        if (!cancelled) setAcademic(res.data);
+      })
+      .catch((err) => {
+        console.error('Failed to load academic summary:', err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
   const handleDownloadTranscript = () => {
     showToast('Official Grade Transcript PDF generated for download.', 'success');
   };
@@ -64,57 +85,67 @@ const StudentResults = () => {
     {
       title: 'Exam Code',
       key: 'examCode',
-      render: (val) => <span className="table-code-chip">{val}</span>,
+      render: (_, row) => (
+        <span className="table-code-chip">{row.exam?.examCode || 'N/A'}</span>
+      ),
     },
     {
       title: 'Subject & Paper',
       key: 'subject',
-      render: (val, row) => (
+      render: (_, row) => (
         <div className="table-subject-cell">
-          <span className="subject-title">{val}</span>
-          <span className="exam-full-name">{row.examTitle}</span>
+          <span className="subject-title">{row.exam?.subject || 'N/A'}</span>
+          <span className="exam-full-name">{row.exam?.title || 'N/A'}</span>
         </div>
       ),
     },
     {
       title: 'Semester',
       key: 'semester',
+      render: (_, row) => {
+        const sem = row.exam?.semester || row.semester;
+        if (!sem) return 'N/A';
+        return typeof sem === 'number' ? `${sem}th Semester` : sem;
+      },
     },
     {
       title: 'Score',
-      key: 'marks',
-      render: (val, row) => (
+      key: 'score',
+      render: (_, row) => (
         <div className="table-score-col">
-          <span className="score-number">{val} / {row.maxMarks}</span>
-          <span className="score-percent">({row.percentage}%)</span>
+          <span className="score-number">
+            {row.marksObtained !== undefined && row.marksObtained !== null ? row.marksObtained : 'N/A'} / {row.maximumMarks !== undefined && row.maximumMarks !== null ? row.maximumMarks : 'N/A'}
+          </span>
+          <span className="score-percent">
+            ({row.percentage !== undefined && row.percentage !== null ? `${row.percentage}%` : 'N/A'})
+          </span>
         </div>
       ),
     },
     {
       title: 'Grade',
       key: 'grade',
-      render: (val) => (
-        <span className={`table-grade-pill grade-${val.replace('+', 'plus')}`}>
-          {val}
-        </span>
-      ),
-    },
-    {
-      title: 'Standing',
-      key: 'passFail',
-      render: (val) => <StatusBadge status={val} size="sm" />,
+      render: (val, row) => {
+        const g = row.grade || val;
+        if (!g) return 'N/A';
+        return (
+          <span className={`table-grade-pill grade-${String(g).replace('+', 'plus')}`}>
+            {g}
+          </span>
+        );
+      },
     },
     {
       title: 'Status',
       key: 'status',
-      render: (val) => <StatusBadge status={val} size="sm" />,
+      render: (_, row) => <StatusBadge status={row.status || 'N/A'} size="sm" />,
     },
     {
       title: 'Action',
       key: 'id',
       align: 'center',
-      render: (val) => (
-        <Link to={`/results/${val}`} className="table-action-popout" title="View Grade Certificate">
+      render: (_, row) => (
+        <Link to={`/results/${row.id || row._id}`} className="table-action-popout" title="View Grade Certificate">
           <ExternalLink size={15} />
         </Link>
       ),
@@ -142,17 +173,23 @@ const StudentResults = () => {
       <div className="results-overview-ribbon">
         <div className="ribbon-stat-item">
           <span className="ribbon-label">Cumulative GPA</span>
-          <span className="ribbon-value text-primary">{user?.gpa || 'N/A'}</span>
+          <span className="ribbon-value text-primary">
+            {typeof academic?.gpa === 'number' ? academic.gpa.toFixed(2) : 'N/A'}
+          </span>
         </div>
         <div className="ribbon-divider" />
         <div className="ribbon-stat-item">
           <span className="ribbon-label">Credits Completed</span>
-          <span className="ribbon-value">{user?.creditsCompleted || 'N/A'} / {user?.totalCredits || 'N/A'}</span>
+          <span className="ribbon-value">
+            {typeof academic?.creditsCompleted === 'number'
+              ? `${academic.creditsCompleted} / ${typeof academic?.totalCredits === 'number' ? academic.totalCredits : 'N/A'}`
+              : 'N/A'}
+          </span>
         </div>
         <div className="ribbon-divider" />
         <div className="ribbon-stat-item">
           <span className="ribbon-label">Academic Standing</span>
-          <span className="ribbon-value text-success">First Class Honours (Distinction)</span>
+          <span className="ribbon-value text-success">{academic?.academicStanding || 'N/A'}</span>
         </div>
       </div>
 

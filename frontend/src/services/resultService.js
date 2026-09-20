@@ -1,6 +1,6 @@
 // Result service
 
-import { get, post, put, del } from "./api";
+import { get, post, put, patch, del } from "./api";
 
 export const resultService = {
   // Get results
@@ -144,7 +144,7 @@ export const resultService = {
 
   // Publish result
   async publish(id) {
-    const response = await put(`/results/${id}/publish`, {});
+    const response = await patch(`/results/${id}/publish`, {});
 
     return {
       success: true,
@@ -157,15 +157,13 @@ export const resultService = {
 
   // Unpublish result
   async unpublish(id) {
-    const response = put
-      ? await put(`/results/${id}/unpublish`, {})
-      : null;
+    const response = await patch(`/results/${id}/unpublish`, {});
 
     return {
       success: true,
-      data: response?.result || response?.data || response,
+      data: response.result || response.data || response,
       message:
-        response?.message ||
+        response.message ||
         "Result unpublished successfully"
     };
   },

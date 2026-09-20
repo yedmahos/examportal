@@ -67,6 +67,8 @@ export const examService = {
     const payload = {
       title: data.title,
       subject: data.subject,
+      examCode: data.examCode,
+      room: data.room,
       department: data.department,
       program: data.program,
       semester: data.semester,

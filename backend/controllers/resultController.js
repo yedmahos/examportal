@@ -180,7 +180,7 @@ const getMyResults = async (req, res) => {
         })
             .populate(
                 "exam",
-                "title subject examDate venue"
+                "title subject examDate venue examCode semester"
             )
             .sort({ createdAt: -1 });
 
@@ -217,7 +217,7 @@ const getResultById = async (req, res) => {
             )
             .populate(
                 "exam",
-                "title subject examDate venue"
+                "title subject examDate venue examCode semester"
             )
             .populate(
                 "createdBy",

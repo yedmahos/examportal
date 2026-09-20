@@ -39,7 +39,7 @@ const getStudentDashboard = async (req, res) => {
         })
             .populate({
                 path: "exam",
-                select: "title subject examDate venue duration status"
+                select: "examCode title subject examDate semester venue duration status"
             })
             .sort({ createdAt: -1 })
             .limit(5);

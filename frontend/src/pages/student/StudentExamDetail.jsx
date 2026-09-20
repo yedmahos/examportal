@@ -99,8 +99,8 @@ const StudentExamDetail = () => {
               </div>
               <div className="spec-card-text">
                 <span className="spec-title">Assigned Venue</span>
-                <span className="spec-value">{exam.venue}</span>
-                <span className="spec-sub">Room: {exam.room}</span>
+                <span className="spec-value">{exam.venue || 'TBA'}</span>
+                <span className="spec-sub">Room: {exam.room || 'TBA'}</span>
               </div>
             </div>
 
@@ -164,7 +164,7 @@ const StudentExamDetail = () => {
               </div>
               <div className="meta-pair">
                 <span className="meta-k">Credits</span>
-                <span className="meta-v">{exam.credits} Credit Units</span>
+                <span className="meta-v">{exam.credits ? `${exam.credits} Credit Units` : 'N/A'}</span>
               </div>
             </div>
           </div>

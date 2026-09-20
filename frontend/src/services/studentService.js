@@ -35,11 +35,16 @@ export const studentService = {
 
     const data = response.data || response;
 
+    const rawItems = data.items || data.students || [];
+
     return {
       success: true,
       data: {
-        items: data.items || data.students || [],
-        total: data.total || 0,
+        items: rawItems.map((student) => ({
+          ...student,
+          id: student._id || student.id
+        })),
+        total: data.total || rawItems.length,
         page: data.page || page,
         limit: data.limit || limit,
         totalPages: data.totalPages || 1
@@ -52,9 +57,14 @@ export const studentService = {
   async getById(id) {
     const response = await get(`/students/${id}`);
 
+    const student =
+      response.student || response.data || response;
+
     return {
       success: true,
-      data: response.student || response.data || response,
+      data: student
+        ? { ...student, id: student._id || student.id }
+        : student,
       message: response.message || ""
     };
   },
@@ -97,19 +107,30 @@ export const studentService = {
     const payload = {
       name: data.name,
       email: data.email,
+      password: data.password,
       studentId: data.studentId,
       department: data.department,
       program: data.program,
       semester: data.semester,
       academicYear: data.academicYear,
-      phone: data.phone
+      phone: data.phone,
+      status: data.status,
+      gpa: data.gpa,
+      creditsCompleted: data.creditsCompleted,
+      totalCredits: data.totalCredits,
+      academicStanding: data.academicStanding
     };
 
     const response = await post("/students", payload);
 
+    const student =
+      response.student || response.data || response;
+
     return {
       success: true,
-      data: response.student || response.data || response,
+      data: student
+        ? { ...student, id: student._id || student.id }
+        : student,
       message:
         response.message ||
         "Student record created successfully"

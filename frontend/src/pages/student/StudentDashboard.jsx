@@ -95,8 +95,7 @@ const StudentDashboard = () => {
           value={upcomingExams.length}
           subValue={summary.totalEnrolledCourses}
           caption="Active Courses This Semester"
-          delta="+3 Active Papers"
-          deltaType="positive"
+          delta={null}
           to="/exams"
         />
       </div>
@@ -160,29 +159,37 @@ const StudentDashboard = () => {
                 </thead>
                 <tbody>
                   {recentResults.map((res) => (
-                    <tr key={res.id}>
-                      <td className="table-id-cell">{res.examCode}</td>
+                    <tr key={res.id || res._id}>
+                      <td className="table-id-cell">{res.exam?.examCode || 'N/A'}</td>
                       <td>
                         <div className="table-subject-cell">
-                          <span className="subject-title">{res.subject}</span>
-                          <span className="exam-full-name">{res.examTitle}</span>
+                          <span className="subject-title">{res.exam?.subject || 'N/A'}</span>
+                          <span className="exam-full-name">{res.exam?.title || 'N/A'}</span>
                         </div>
                       </td>
-                      <td className="table-date-cell">{res.examDate}</td>
+                      <td className="table-date-cell">
+                        {res.exam?.examDate
+                          ? new Date(res.exam.examDate).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric"
+                            })
+                          : "N/A"}
+                      </td>
                       <td>
                         <div className="table-grade-cell">
-                          <span className="grade-badge">{res.grade}</span>
-                          <span className="score-text">({res.percentage}%)</span>
+                          <span className="grade-badge">{res.grade || 'N/A'}</span>
+                          <span className="score-text">({res.percentage !== undefined && res.percentage !== null ? `${res.percentage}%` : 'N/A'})</span>
                         </div>
                       </td>
                       <td>
-                        <StatusBadge status={res.status} />
+                        <StatusBadge status={res.status || 'N/A'} />
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <Link
-                          to={`/results/${res.id}`}
+                          to={`/results/${res.id || res._id}`}
                           className="table-action-popout"
-                          aria-label={`View result for ${res.subject}`}
+                          aria-label={`View result for ${res.exam?.subject || 'exam'}`}
                         >
                           <ExternalLink size={15} />
                         </Link>

@@ -1,6 +1,5 @@
 import React from 'react';
-import { FileText, Download, ExternalLink, Calendar, Award, BellRing } from 'lucide-react';
-import Avatar from '../common/Avatar';
+import { FileText, Download, ExternalLink, Calendar, Award, BellRing, Megaphone, AlertTriangle } from 'lucide-react';
 import './Notification.css';
 
 const NotificationItem = ({
@@ -13,18 +12,22 @@ const NotificationItem = ({
     _id,
     id = _id,
     title,
-    sender = title || 'System',
-    senderAvatar,
     message,
-    actionText = message,
     createdAt,
     date,
-    timestamp = createdAt ? new Date(createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : date,
+    timestamp,
     isRead,
     attachment,
     type,
-    link,
   } = notification;
+
+  const displayTime = createdAt
+    ? new Date(createdAt).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      })
+    : timestamp || date || 'N/A';
 
   const getAttachmentIcon = (attType = '') => {
     switch (attType.toLowerCase()) {
@@ -41,11 +44,15 @@ const NotificationItem = ({
   };
 
   const getTypeFallbackIcon = () => {
-    switch (type) {
-      case 'Exams':
+    switch (String(type || '').toLowerCase()) {
+      case 'exam':
         return <Calendar size={18} />;
-      case 'Results':
+      case 'result':
         return <Award size={18} />;
+      case 'announcement':
+        return <Megaphone size={18} />;
+      case 'important':
+        return <AlertTriangle size={18} />;
       default:
         return <BellRing size={18} />;
     }
@@ -57,24 +64,21 @@ const NotificationItem = ({
       onClick={() => !isRead && onMarkAsRead && onMarkAsRead(id)}
     >
       <div className="notif-item-avatar-col">
-        {senderAvatar ? (
-          <Avatar src={senderAvatar} name={sender} size="md" />
-        ) : (
-          <div className="notif-type-icon-chip">
-            {getTypeFallbackIcon()}
-          </div>
-        )}
+        <div className="notif-type-icon-chip">
+          {getTypeFallbackIcon()}
+        </div>
       </div>
 
       <div className="notif-item-content-col">
         <div className="notif-item-header-text">
-          <span className="notif-sender-name">{sender} </span>
-          <span className="notif-action-text">{actionText}</span>
+          <span className="notif-sender-name">{title || 'Notification'}</span>
           {!isRead && <span className="notif-unread-dot" />}
         </div>
 
+        <div className="notif-action-text">{message}</div>
+
         <div className="notif-item-time-line">
-          {date ? `On ${date}` : timestamp}
+          {displayTime}
         </div>
 
         {attachment && (

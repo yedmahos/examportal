@@ -111,7 +111,9 @@ const StudentProfile = () => {
 
           <div className="profile-quick-stats">
             <div className="p-stat-box">
-              <span className="p-stat-num text-primary">{profile.gpa ? profile.gpa.toFixed(2) : 'N/A'}</span>
+              <span className="p-stat-num text-primary">
+                {typeof profile.gpa === 'number' ? profile.gpa.toFixed(2) : 'N/A'}
+              </span>
               <span className="p-stat-lbl">Cumulative GPA</span>
             </div>
             <div className="p-stat-box">
@@ -119,7 +121,7 @@ const StudentProfile = () => {
               <span className="p-stat-lbl">Credits Done</span>
             </div>
             <div className="p-stat-box">
-              <span className="p-stat-num text-success">Good</span>
+              <span className="p-stat-num text-success">{profile.academicStanding || 'N/A'}</span>
               <span className="p-stat-lbl">Academic Standing</span>
             </div>
           </div>
@@ -162,7 +164,7 @@ const StudentProfile = () => {
 
               <div className="p-field-item">
                 <span className="p-field-label">Enrollment Date</span>
-                <span className="p-field-value">{profile.enrollmentDate || '2023-09-01'}</span>
+                <span className="p-field-value">{profile.enrollmentDate || 'N/A'}</span>
               </div>
             </div>
           </div>
@@ -187,7 +189,7 @@ const StudentProfile = () => {
 
               <div className="p-field-item field-span-full">
                 <span className="p-field-label">Mailing Address</span>
-                <span className="p-field-value">{profile.address || 'Campus View Apartments #402, Academic City'}</span>
+                <span className="p-field-value">{profile.address || 'Not provided'}</span>
               </div>
             </div>
           </div>
