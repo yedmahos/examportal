@@ -1,19 +1,45 @@
 const mongoose = require("mongoose");
 const Exam = require("../models/Exam");
+const AcademicYear = require("../models/AcademicYear");
+const Department = require("../models/Department");
+const Program = require("../models/Program");
+const Batch = require("../models/Batch");
+const ExamType = require("../models/ExamType");
+const ExamSession = require("../models/ExamSession");
 const { logActivity } = require("../services/activityLogger");
+const { roleSatisfies } = require("../utils/roles");
+const { isObjectId, parseDateOnly, isTime } = require("../utils/http");
+const {
+    parseSemester,
+    escapeRegex,
+    parsePagination,
+    paginationMeta
+} = require("../utils/query");
 
-const parseSemester = (value) => {
+const EXAM_STATUSES = [
+    "scheduled",
+    "ongoing",
+    "completed",
+    "cancelled",
+    "postponed"
+];
+
+const canonicalExamStatus = (value) => {
     if (value === undefined || value === null || value === "") {
-        return null;
+        return "";
     }
 
-    if (typeof value === "number") {
-        return value;
+    const normalized = String(value).trim().toLowerCase();
+
+    if (
+        normalized === "in progress" ||
+        normalized === "in-progress" ||
+        normalized === "inprogress"
+    ) {
+        return "ongoing";
     }
 
-    const match = String(value).match(/\d+/);
-
-    return match ? Number(match[0]) : null;
+    return normalized;
 };
 
 const parseDuration = (value) => {
@@ -31,15 +57,166 @@ const parseDuration = (value) => {
 };
 
 const normalizeStatus = (value) => {
-    if (!value) {
+    const canonical = canonicalExamStatus(value);
+
+    if (!canonical || canonical === "upcoming") {
         return "scheduled";
     }
 
-    return String(value).toLowerCase();
+    return canonical;
+};
+
+const creatorFieldsFor = (role) => {
+    return roleSatisfies(role, ["admin"])
+        ? "name email role"
+        : "name role";
+};
+
+const populateExamination = (query) => {
+    return query
+        .populate("createdBy", "name role")
+        .populate("examType", "name code status")
+        .populate("academicYearRef", "name")
+        .populate("departmentRef", "name code")
+        .populate("programRef", "name code")
+        .populate("eligibleBatches", "name semester")
+        .populate("sessions", "name code startTime endTime reportingTime");
+};
+
+const createExaminationSetup = async (req, res) => {
+    const title = String(req.body.title || req.body.name || "").trim();
+    const semester = parseSemester(req.body.semester);
+    const startDate = parseDateOnly(req.body.startDate);
+    const endDate = parseDateOnly(req.body.endDate);
+
+    if (!title || !semester || semester < 1 || semester > 12 || !startDate || !endDate) {
+        return res.status(400).json({
+            message: "Title, semester, startDate and endDate are required"
+        });
+    }
+
+    if (endDate < startDate) {
+        return res.status(400).json({
+            message: "End date must be on or after the start date"
+        });
+    }
+
+    if (!isObjectId(req.body.examType) || !isObjectId(req.body.academicYear) || !isObjectId(req.body.department) || !isObjectId(req.body.program)) {
+        return res.status(400).json({
+            message: "Exam type, academic year, department and program are required"
+        });
+    }
+
+    const [examType, academicYear, department, program] = await Promise.all([
+        ExamType.findById(req.body.examType),
+        AcademicYear.findById(req.body.academicYear),
+        Department.findById(req.body.department),
+        Program.findById(req.body.program)
+    ]);
+
+    if (!examType || examType.status !== "active") {
+        return res.status(404).json({ message: "Active exam type not found" });
+    }
+    if (!academicYear) return res.status(404).json({ message: "Academic year not found" });
+    if (!department) return res.status(404).json({ message: "Department not found" });
+    if (!program) return res.status(404).json({ message: "Program not found" });
+
+    if (String(program.department) !== String(department._id)) {
+        return res.status(400).json({
+            message: "Program does not belong to the selected department"
+        });
+    }
+
+    let sessions = [];
+
+    if (req.body.sessions !== undefined) {
+        if (!Array.isArray(req.body.sessions)) {
+            return res.status(400).json({ message: "Sessions must be an array" });
+        }
+        sessions = await ExamSession.find({
+            _id: { $in: req.body.sessions.filter(isObjectId) },
+            status: "active"
+        });
+        if (sessions.length !== req.body.sessions.length) {
+            return res.status(400).json({ message: "One or more sessions are invalid" });
+        }
+    }
+
+    let eligibleBatches = [];
+
+    if (req.body.eligibleBatches !== undefined) {
+        if (!Array.isArray(req.body.eligibleBatches)) {
+            return res.status(400).json({ message: "Eligible batches must be an array" });
+        }
+        eligibleBatches = await Batch.find({
+            _id: { $in: req.body.eligibleBatches.filter(isObjectId) },
+            program: program._id
+        });
+        if (eligibleBatches.length !== req.body.eligibleBatches.length) {
+            return res.status(400).json({
+                message: "One or more batches are invalid for this program"
+            });
+        }
+    }
+
+    if (req.body.reportingTime && !isTime(req.body.reportingTime)) {
+        return res.status(400).json({ message: "Reporting time must use HH:MM" });
+    }
+
+    const payload = {
+        title,
+        semester,
+        examType: examType._id,
+        academicYearRef: academicYear._id,
+        academicYear: academicYear.name,
+        departmentRef: department._id,
+        department: department.name,
+        programRef: program._id,
+        program: program.name,
+        startDate,
+        endDate,
+        sessions: sessions.map((session) => session._id),
+        eligibleBatches: eligibleBatches.map((batch) => batch._id),
+        instructions: req.body.instructions || "",
+        status: "scheduled",
+        createdBy: req.user.userId
+    };
+
+    if (req.body.reportingTime) payload.reportingTime = req.body.reportingTime;
+    if (req.body.duration) {
+        const duration = parseDuration(req.body.duration);
+        if (!duration || duration < 1) {
+            return res.status(400).json({ message: "Duration must be greater than 0" });
+        }
+        payload.duration = duration;
+    }
+    if (req.body.examCode) payload.examCode = String(req.body.examCode).trim();
+
+    const exam = await Exam.create(payload);
+
+    await logActivity({
+        user: req.user.userId,
+        action: "CREATE",
+        entity: "Exam",
+        entityId: exam._id,
+        description: `Created examination ${exam.title}`,
+        ipAddress: req.ip
+    });
+
+    const populated = await populateExamination(Exam.findById(exam._id));
+
+    return res.status(201).json({
+        message: "Examination created",
+        exam: populated
+    });
 };
 
 const createExam = async (req, res) => {
     try {
+        if (req.body.examinationSetup === true) {
+            return await createExaminationSetup(req, res);
+        }
+
         const {
             title,
             subject,
@@ -63,6 +240,12 @@ const createExam = async (req, res) => {
         const normalizedDuration = parseDuration(duration);
         const normalizedExamDate = examDate || date;
         const normalizedStatus = normalizeStatus(status);
+
+        if (!EXAM_STATUSES.includes(normalizedStatus)) {
+            return res.status(400).json({
+                message: "Invalid exam status"
+            });
+        }
 
         if (
             !title ||
@@ -143,14 +326,6 @@ const getAllExams = async (req, res) => {
         const { search, department, semester, status } = req.query;
         const query = { isArchived: false };
 
-        if (search) {
-            query.$or = [
-                { title: { $regex: search, $options: "i" } },
-                { subject: { $regex: search, $options: "i" } },
-                { examCode: { $regex: search, $options: "i" } }
-            ];
-        }
-
         if (department && department !== "All") {
             query.department = department;
         }
@@ -161,21 +336,39 @@ const getAllExams = async (req, res) => {
         }
 
         if (status && status !== "All") {
-            const statusVal = String(status).toLowerCase();
-            if (statusVal === "upcoming" || statusVal === "scheduled") {
+            const statusVal = canonicalExamStatus(status);
+
+            if (statusVal === "upcoming") {
                 query.status = { $in: ["scheduled", "ongoing"] };
-            } else {
+            } else if (EXAM_STATUSES.includes(statusVal)) {
                 query.status = statusVal;
             }
         }
 
-        const exams = await Exam.find(query)
-            .populate("createdBy", "name email role")
-            .sort({ examDate: 1 });
+        if (search) {
+            const regex = new RegExp(escapeRegex(search), "i");
+            query.$or = [
+                { title: regex },
+                { subject: regex },
+                { examCode: regex }
+            ];
+        }
+
+        const { page, limit, skip } = parsePagination(req.query);
+
+        const [exams, total] = await Promise.all([
+            populateExamination(
+                Exam.find(query)
+                    .sort({ examDate: 1, startDate: 1 })
+                    .skip(skip)
+                    .limit(limit)
+            ).populate("createdBy", creatorFieldsFor(req.user.role)),
+            Exam.countDocuments(query)
+        ]);
 
         res.status(200).json({
-            count: exams.length,
-            exams
+            exams,
+            ...paginationMeta({ page, limit, total })
         });
     } catch (error) {
         console.error("Get exams error:", error.message);
@@ -196,12 +389,14 @@ const getExamById = async (req, res) => {
             });
         }
 
-        const exam = await Exam.findOne({
-            _id: id,
-            isArchived: false
-        }).populate(
+        const exam = await populateExamination(
+            Exam.findOne({
+                _id: id,
+                isArchived: false
+            })
+        ).populate(
             "createdBy",
-            "name email role"
+            creatorFieldsFor(req.user.role)
         );
 
         if (!exam) {
@@ -248,7 +443,16 @@ const updateExam = async (req, res) => {
             "room",
             "duration",
             "instructions",
-            "status"
+            "status",
+            "examType",
+            "startDate",
+            "endDate",
+            "reportingTime",
+            "sessions",
+            "eligibleBatches",
+            "departmentRef",
+            "programRef",
+            "academicYearRef"
         ];
 
         const updates = {};
@@ -302,6 +506,12 @@ const updateExam = async (req, res) => {
         if (updates.status) {
             updates.status =
                 normalizeStatus(updates.status);
+
+            if (!EXAM_STATUSES.includes(updates.status)) {
+                return res.status(400).json({
+                    message: "Invalid exam status"
+                });
+            }
         }
 
         if (Object.keys(updates).length === 0) {

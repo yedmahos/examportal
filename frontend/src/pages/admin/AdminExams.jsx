@@ -59,10 +59,6 @@ const AdminExams = () => {
     duration: '180 minutes (3 hours)',
     venue: 'Auditorium Hall B',
     room: 'HCI - 401',
-    totalMarks: 100,
-    passingMarks: 40,
-    credits: 4,
-    invigilator: 'Prof. Endang Setyowati, Ph.D',
     instructions: '1. Official student ID card required.\n2. Non-programmable calculator permitted.\n3. Mobile devices prohibited.',
     status: 'Scheduled',
   });
@@ -118,10 +114,6 @@ const AdminExams = () => {
       duration: '180 minutes',
       venue: 'Auditorium Hall B',
       room: '',
-      totalMarks: 100,
-      passingMarks: 40,
-      credits: 4,
-      invigilator: 'Dr. Dadang Nurjaman',
       instructions: '1. Official student ID card required.\n2. Arrive 20 minutes before exam time.',
       status: 'Scheduled',
     });
@@ -145,10 +137,6 @@ const AdminExams = () => {
       duration: exam.duration || '180 minutes',
       venue: exam.venue || '',
       room: exam.room || '',
-      totalMarks: exam.totalMarks || 100,
-      passingMarks: exam.passingMarks || 40,
-      credits: exam.credits || 4,
-      invigilator: exam.invigilator || '',
       instructions: exam.instructions || '',
       status: exam.status ? exam.status.charAt(0).toUpperCase() + exam.status.slice(1) : 'Scheduled',
     });
@@ -267,9 +255,14 @@ const AdminExams = () => {
       title: 'Status',
       key: 'status',
       render: (val) => {
-        const display = val
-          ? val.charAt(0).toUpperCase() + val.slice(1)
-          : '';
+        const labels = {
+          scheduled: 'Scheduled',
+          ongoing: 'In Progress',
+          completed: 'Completed',
+          cancelled: 'Cancelled',
+          postponed: 'Postponed',
+        };
+        const display = labels[String(val || '').toLowerCase()] || val || '';
         return <StatusBadge status={display} size="sm" />;
       },
     },
@@ -508,40 +501,11 @@ const AdminExams = () => {
             </FormField>
           </div>
 
-          <div className="form-grid-three">
-            <FormField label="Total Marks">
-              <Input
-                type="number"
-                value={formData.totalMarks}
-                onChange={(e) => setFormData(prev => ({ ...prev, totalMarks: e.target.value }))}
-                disabled={isSaving}
-              />
-            </FormField>
-
-            <FormField label="Passing Marks">
-              <Input
-                type="number"
-                value={formData.passingMarks}
-                onChange={(e) => setFormData(prev => ({ ...prev, passingMarks: e.target.value }))}
-                disabled={isSaving}
-              />
-            </FormField>
-
-            <FormField label="Status" required>
-              <Select
-                value={formData.status}
-                onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
-                options={STATUSES.filter(s => s !== 'All')}
-                disabled={isSaving}
-              />
-            </FormField>
-          </div>
-
-          <FormField label="Chief Invigilator">
-            <Input
-              value={formData.invigilator}
-              onChange={(e) => setFormData(prev => ({ ...prev, invigilator: e.target.value }))}
-              placeholder="Prof. Name, Ph.D"
+          <FormField label="Status" required>
+            <Select
+              value={formData.status}
+              onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+              options={STATUSES.filter(s => s !== 'All')}
               disabled={isSaving}
             />
           </FormField>

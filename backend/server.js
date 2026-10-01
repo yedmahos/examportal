@@ -3,6 +3,31 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
 
+const parseOriginList = (value) => {
+    return String(value || "")
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+};
+
+const allowedOrigins = [
+    ...parseOriginList(process.env.CORS_ORIGINS),
+    ...parseOriginList(process.env.FRONTEND_URL)
+];
+
+const isLocalOrigin = (origin) => {
+    return /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+};
+
+const isConfiguredFrontendOrigin = (origin) => {
+    if (allowedOrigins.includes(origin)) {
+        return true;
+    }
+
+    // Vercel production and preview hosts for this frontend.
+    return /^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin);
+};
+
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const examRoutes = require("./routes/examRoutes");
@@ -13,13 +38,34 @@ const studentRoutes = require("./routes/studentRoutes");
 const profileRoutes = require("./routes/profileRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const activityRoutes = require("./routes/activityRoutes");
-
-const ActivityLog = require("./models/ActivityLog");
+const academicYearRoutes = require("./routes/academicYearRoutes");
+const departmentRoutes = require("./routes/departmentRoutes");
+const programRoutes = require("./routes/programRoutes");
+const batchRoutes = require("./routes/batchRoutes");
+const sectionRoutes = require("./routes/sectionRoutes");
+const examTypeRoutes = require("./routes/examTypeRoutes");
+const sessionRoutes = require("./routes/sessionRoutes");
+const subjectRoutes = require("./routes/subjectRoutes");
+const enrollmentRoutes = require("./routes/enrollmentRoutes");
+const registrationRoutes = require("./routes/registrationRoutes");
+const eligibilityRoutes = require("./routes/eligibilityRoutes");
+const scheduleRoutes = require("./routes/scheduleRoutes");
+const conflictRoutes = require("./routes/conflictRoutes");
+const roomRoutes = require("./routes/roomRoutes");
+const { ensureCatalog } = require("./services/catalogSeed");
 
 const app = express();
 
 // Request middleware
-app.use(cors());
+app.use(cors({
+    origin(origin, callback) {
+        if (!origin || isLocalOrigin(origin) || isConfiguredFrontendOrigin(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error("Origin not allowed"));
+    }
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -43,30 +89,20 @@ app.use("/api/dashboard", dashboardRoutes);
 
 // Activity routes
 app.use("/api/activities", activityRoutes);
-
-// Activity test route
-app.get("/api/activity-test", async (req, res) => {
-    try {
-        const activities = await ActivityLog.find()
-            .populate("user", "name email role")
-            .sort({ createdAt: -1 })
-            .limit(20);
-
-        res.status(200).json({
-            count: activities.length,
-            activities
-        });
-    } catch (error) {
-        console.error(
-            "Activity test error:",
-            error.message
-        );
-
-        res.status(500).json({
-            message: "Activity test failed"
-        });
-    }
-});
+app.use("/api/academic-years", academicYearRoutes);
+app.use("/api/departments", departmentRoutes);
+app.use("/api/programs", programRoutes);
+app.use("/api/batches", batchRoutes);
+app.use("/api/sections", sectionRoutes);
+app.use("/api/exam-types", examTypeRoutes);
+app.use("/api/sessions", sessionRoutes);
+app.use("/api/subjects", subjectRoutes);
+app.use("/api/enrollments", enrollmentRoutes);
+app.use("/api/registrations", registrationRoutes);
+app.use("/api/eligibility", eligibilityRoutes);
+app.use("/api/schedules", scheduleRoutes);
+app.use("/api/conflicts", conflictRoutes);
+app.use("/api/rooms", roomRoutes);
 
 // Unknown route handler
 app.use((req, res) => {
@@ -92,10 +128,12 @@ const PORT = process.env.PORT || 5000;
 // MongoDB connection
 mongoose
     .connect(process.env.MONGODB_URI)
-    .then(() => {
+    .then(async () => {
         console.log(
             "MongoDB connected successfully"
         );
+
+        await ensureCatalog();
 
         app.listen(
             PORT,

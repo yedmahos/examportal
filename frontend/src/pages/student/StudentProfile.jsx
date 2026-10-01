@@ -94,7 +94,7 @@ const StudentProfile = () => {
         <div className="profile-hero-card">
           <div className="profile-hero-top">
             <Avatar
-              src={profile.avatar}
+              src={profile.profileImage || profile.avatar}
               name={profile.name}
               size="xl"
               className="profile-avatar-large"
@@ -103,7 +103,7 @@ const StudentProfile = () => {
               <h2 className="profile-full-name">{profile.name}</h2>
               <span className="profile-student-id">{profile.studentId}</span>
               <div className="profile-status-row">
-                <StatusBadge status={profile.status || 'Active'} size="md" />
+                <StatusBadge status={profile.status || 'N/A'} size="md" />
                 <span className="profile-program-tag">{profile.semester}</span>
               </div>
             </div>
@@ -117,7 +117,7 @@ const StudentProfile = () => {
               <span className="p-stat-lbl">Cumulative GPA</span>
             </div>
             <div className="p-stat-box">
-              <span className="p-stat-num">{profile.creditsCompleted || 'N/A'}</span>
+              <span className="p-stat-num">{typeof profile.creditsCompleted === 'number' ? profile.creditsCompleted : 'N/A'}</span>
               <span className="p-stat-lbl">Credits Done</span>
             </div>
             <div className="p-stat-box">
@@ -159,7 +159,7 @@ const StudentProfile = () => {
 
               <div className="p-field-item">
                 <span className="p-field-label">Total Program Credits</span>
-                <span className="p-field-value">{profile.totalCredits ? `${profile.totalCredits} Credits Required` : 'N/A'}</span>
+                <span className="p-field-value">{typeof profile.totalCredits === 'number' ? `${profile.totalCredits} Credits Required` : 'N/A'}</span>
               </div>
 
               <div className="p-field-item">

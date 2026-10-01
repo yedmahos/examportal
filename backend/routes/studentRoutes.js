@@ -15,40 +15,40 @@ const {
 
 const router = express.Router();
 
-// All student management routes are admin only
+const studentManagers = ["admin", "department_admin", "examination_cell"];
 
 router.get(
     "/",
     protect,
-    authorize("admin"),
+    authorize(...studentManagers),
     getAllStudents
 );
 
 router.post(
     "/",
     protect,
-    authorize("admin"),
+    authorize(...studentManagers),
     createStudent
 );
 
 router.get(
     "/:id",
     protect,
-    authorize("admin"),
+    authorize(...studentManagers),
     getStudentById
 );
 
 router.put(
     "/:id",
     protect,
-    authorize("admin"),
+    authorize(...studentManagers),
     updateStudent
 );
 
 router.patch(
     "/:id/status",
     protect,
-    authorize("admin"),
+    authorize(...studentManagers),
     updateStudentStatus
 );
 

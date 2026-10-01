@@ -27,7 +27,7 @@ const Topbar = ({ onOpenMobileMenu }) => {
   const { showToast } = useToast();
 
   const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(2);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
 
@@ -168,7 +168,7 @@ const Topbar = ({ onOpenMobileMenu }) => {
               aria-label="User profile menu"
             >
               <Avatar
-                src={user?.avatar}
+                src={user?.profileImage || user?.avatar}
                 name={user?.name || 'User'}
                 size="md"
               />
@@ -177,7 +177,7 @@ const Topbar = ({ onOpenMobileMenu }) => {
             {isProfileMenuOpen && (
               <div className="topbar-profile-dropdown animate-slide-down">
                 <div className="profile-dropdown-user-info">
-                  <Avatar src={user?.avatar} name={user?.name} size="md" />
+                  <Avatar src={user?.profileImage || user?.avatar} name={user?.name} size="md" />
                   <div className="dropdown-user-details">
                     <span className="dropdown-name">{user?.name}</span>
                     <span className="dropdown-email">{user?.email}</span>

@@ -2,26 +2,12 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const { logActivity } = require("../services/activityLogger");
-
-// The admin form submits labels such as "6th Semester",
-// while the schema stores a plain number.
-const parseSemester = (value) => {
-    if (
-        value === undefined ||
-        value === null ||
-        value === ""
-    ) {
-        return null;
-    }
-
-    if (typeof value === "number") {
-        return value;
-    }
-
-    const match = String(value).match(/\d+/);
-
-    return match ? Number(match[0]) : null;
-};
+const {
+    parseSemester,
+    escapeRegex,
+    parsePagination,
+    paginationMeta
+} = require("../utils/query");
 
 const getAllStudents = async (req, res) => {
     try {
@@ -36,48 +22,46 @@ const getAllStudents = async (req, res) => {
             role: "student"
         };
 
-        if (department) {
+        if (department && department !== "All") {
             query.department = department;
         }
 
-        if (semester) {
-            query.semester = Number(semester);
+        if (semester && semester !== "All") {
+            const semesterNumber = parseSemester(semester);
+
+            if (semesterNumber) {
+                query.semester = semesterNumber;
+            }
         }
 
-        if (status) {
-            query.status = status;
+        if (status && status !== "All") {
+            query.status = String(status).trim().toLowerCase();
         }
 
         if (search) {
+            const regex = new RegExp(escapeRegex(search), "i");
+
             query.$or = [
-                {
-                    name: {
-                        $regex: search,
-                        $options: "i"
-                    }
-                },
-                {
-                    email: {
-                        $regex: search,
-                        $options: "i"
-                    }
-                },
-                {
-                    studentId: {
-                        $regex: search,
-                        $options: "i"
-                    }
-                }
+                { name: regex },
+                { email: regex },
+                { studentId: regex }
             ];
         }
 
-        const students = await User.find(query)
-            .select("-password")
-            .sort({ createdAt: -1 });
+        const { page, limit, skip } = parsePagination(req.query);
+
+        const [students, total] = await Promise.all([
+            User.find(query)
+                .select("-password")
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit),
+            User.countDocuments(query)
+        ]);
 
         res.status(200).json({
-            count: students.length,
-            students
+            students,
+            ...paginationMeta({ page, limit, total })
         });
     } catch (error) {
         console.error("Get students error:", error.message);

@@ -2,6 +2,30 @@
 
 import { get, post, put, patch, del } from "./api";
 
+const withId = (record) => {
+  if (!record || typeof record !== "object" || Array.isArray(record)) {
+    return record;
+  }
+
+  const id = record.id || record._id;
+
+  return id
+    ? { ...record, id: String(id) }
+    : record;
+};
+
+const totalFrom = (data, fallback = 0) => {
+  if (typeof data?.total === "number") {
+    return data.total;
+  }
+
+  if (typeof data?.count === "number") {
+    return data.count;
+  }
+
+  return fallback;
+};
+
 export const resultService = {
   // Get results
   async getAll({
@@ -10,6 +34,7 @@ export const resultService = {
     semester = "",
     status = "",
     studentId = "",
+    student = "",
     page = 1,
     limit = 10
   } = {}) {
@@ -33,18 +58,23 @@ export const resultService = {
       params.append("studentId", studentId);
     }
 
+    if (student) {
+      params.append("student", student);
+    }
+
     params.append("page", page);
     params.append("limit", limit);
 
     const response = await get(`/results?${params.toString()}`);
 
     const data = response.data || response;
+    const items = (data.items || data.results || []).map(withId);
 
     return {
       success: true,
       data: {
-        items: data.items || data.results || [],
-        total: data.total || 0,
+        items,
+        total: totalFrom(data, items.length),
         page: data.page || page,
         limit: data.limit || limit,
         totalPages: data.totalPages || 1
@@ -58,13 +88,14 @@ export const resultService = {
     const response = await get(`/results/my`);
 
     const data = response.data || response;
+    const items = (data.items || data.results || []).map(withId);
 
     return {
       success: true,
       data: {
-        items: data.items || data.results || [],
-        total: data.total || data.count || 0,
-        totalPages: 1 // My results doesn't have pagination yet
+        items,
+        total: totalFrom(data, items.length),
+        totalPages: 1
       },
       message: response.message || ""
     };
@@ -73,10 +104,11 @@ export const resultService = {
   // Get result details
   async getById(id) {
     const response = await get(`/results/${id}`);
+    const result = withId(response.result || response.data || response);
 
     return {
       success: true,
-      data: response.result || response.data || response,
+      data: result,
       message: response.message || ""
     };
   },
@@ -100,7 +132,7 @@ export const resultService = {
 
     return {
       success: true,
-      data: response.result || response.data || response,
+      data: withId(response.result || response.data || response),
       message: response.message || "Result entry created"
     };
   },
@@ -108,18 +140,6 @@ export const resultService = {
   // Update result
   async update(id, data) {
     const payload = {};
-
-    if (data.student !== undefined) {
-      payload.student = data.student;
-    } else if (data.studentId !== undefined) {
-      payload.student = data.studentId;
-    }
-
-    if (data.exam !== undefined) {
-      payload.exam = data.exam;
-    } else if (data.examId !== undefined) {
-      payload.exam = data.examId;
-    }
 
     if (data.marksObtained !== undefined) {
       payload.marksObtained = Number(data.marksObtained);
@@ -137,7 +157,7 @@ export const resultService = {
 
     return {
       success: true,
-      data: response.result || response.data || response,
+      data: withId(response.result || response.data || response),
       message: response.message || "Result updated successfully"
     };
   },
@@ -148,7 +168,7 @@ export const resultService = {
 
     return {
       success: true,
-      data: response.result || response.data || response,
+      data: withId(response.result || response.data || response),
       message:
         response.message ||
         "Result published successfully"
@@ -161,7 +181,7 @@ export const resultService = {
 
     return {
       success: true,
-      data: response.result || response.data || response,
+      data: withId(response.result || response.data || response),
       message:
         response.message ||
         "Result unpublished successfully"

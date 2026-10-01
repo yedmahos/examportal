@@ -14,6 +14,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { canAccess, roleLabel } from '../../utils/roles';
 import './Layout.css';
 
 const Sidebar = ({
@@ -58,31 +59,59 @@ const Sidebar = ({
     },
   ];
 
+  const staffRoles = ['admin', 'super_admin', 'examination_cell', 'department_admin', 'faculty'];
+
   const adminNavGroups = [
     {
       groupTitle: null,
       items: [
-        { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: staffRoles },
+      ],
+    },
+    {
+      groupTitle: 'Academic Structure',
+      items: [
+        { to: '/admin/academic-years', label: 'Academic Years', icon: Calendar, roles: ['super_admin'] },
+        { to: '/admin/departments', label: 'Departments', icon: BookOpen, roles: ['super_admin', 'department_admin', 'examination_cell'] },
+        { to: '/admin/programs', label: 'Programs', icon: BookOpen, roles: ['super_admin', 'department_admin', 'examination_cell'] },
+        { to: '/admin/batches', label: 'Batches', icon: Users, roles: ['super_admin', 'department_admin', 'examination_cell'] },
+        { to: '/admin/sections', label: 'Sections', icon: Users, roles: ['super_admin', 'department_admin', 'examination_cell'] },
+      ],
+    },
+    {
+      groupTitle: 'Examination',
+      items: [
+        { to: '/admin/exam-types', label: 'Exam Types', icon: Award, roles: ['super_admin', 'examination_cell', 'department_admin'] },
+        { to: '/admin/examinations', label: 'Examinations', icon: Calendar, roles: ['super_admin', 'examination_cell'] },
+        { to: '/admin/sessions', label: 'Sessions', icon: Calendar, roles: ['super_admin', 'examination_cell', 'department_admin'] },
+        { to: '/admin/subjects', label: 'Subjects', icon: BookOpen, roles: ['super_admin', 'examination_cell', 'department_admin'] },
+        { to: '/admin/enrollments', label: 'Enrollment', icon: Users, roles: ['super_admin', 'examination_cell', 'department_admin'] },
+        { to: '/admin/eligibility', label: 'Eligibility', icon: Award, roles: ['super_admin', 'examination_cell', 'department_admin'] },
+        { to: '/admin/schedules', label: 'Schedules', icon: Calendar, roles: ['super_admin', 'examination_cell', 'department_admin'] },
+        { to: '/admin/rooms', label: 'Rooms', icon: BookOpen, roles: ['super_admin', 'examination_cell'] },
       ],
     },
     {
       groupTitle: 'Academic Management',
       items: [
-        { to: '/admin/students', label: 'Students', icon: Users },
-        { to: '/admin/exams', label: 'Exams', icon: Calendar },
-        { to: '/admin/results', label: 'Results', icon: Award },
-        { to: '/admin/announcements', label: 'Announcements', icon: Megaphone },
+        { to: '/admin/students', label: 'Students', icon: Users, roles: ['admin', 'super_admin', 'department_admin', 'examination_cell'] },
+        { to: '/admin/exams', label: 'Exam Notices', icon: Calendar, roles: ['admin', 'super_admin', 'examination_cell'] },
+        { to: '/admin/results', label: 'Results', icon: Award, roles: ['admin', 'super_admin'] },
+        { to: '/admin/announcements', label: 'Announcements', icon: Megaphone, roles: ['admin', 'super_admin'] },
       ],
     },
     {
       groupTitle: 'Account',
       items: [
-        { to: '/admin/profile', label: 'Admin Profile', icon: User },
+        { to: '/admin/profile', label: 'Profile', icon: User, roles: staffRoles },
       ],
     },
-  ];
+  ].map((group) => ({
+    ...group,
+    items: group.items.filter((item) => canAccess(role, item.roles)),
+  })).filter((group) => group.items.length);
 
-  const navGroups = role === 'admin' ? adminNavGroups : studentNavGroups;
+  const navGroups = role && role !== 'student' ? adminNavGroups : studentNavGroups;
 
   return (
     <>
@@ -113,7 +142,7 @@ const Sidebar = ({
               <div className="sidebar-brand-text">
                 <span className="sidebar-app-name">ExamPortal</span>
                 <span className="sidebar-app-role">
-                  {role === 'admin' ? 'Administration' : 'Student Portal'}
+                  {roleLabel(role)}
                 </span>
               </div>
             )}

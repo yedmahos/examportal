@@ -208,7 +208,8 @@ const StudentDashboard = () => {
           <ScheduleRightRail
             upcomingExams={upcomingExams}
             title="Daily Exam Schedule"
-            subtitle="Scheduled venues and invigilation"
+            subtitle="Your eligible examinations"
+            detailBasePath="/exams/schedule"
           />
 
           {/* Recent Circulars & Notices Card */}
@@ -224,16 +225,29 @@ const StudentDashboard = () => {
             </div>
 
             <div className="notices-list">
-              {recentAnnouncements.map((ann) => (
-                <div key={ann.id} className="notice-item-mini">
+            {recentAnnouncements.map((ann) => {
+              const excerpt = ann.content || '';
+              const publishDate = ann.publishDate
+                ? new Date(ann.publishDate).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                  })
+                : 'N/A';
+
+              return (
+                <div key={ann.id || ann._id} className="notice-item-mini">
                   <div className="notice-mini-top">
                     <StatusBadge status={ann.priority} size="sm" />
-                    <span className="notice-mini-date">{ann.publishDate}</span>
+                    <span className="notice-mini-date">{publishDate}</span>
                   </div>
                   <h5 className="notice-mini-title">{ann.title}</h5>
-                  <p className="notice-mini-excerpt">{ann.content.slice(0, 95)}...</p>
+                  <p className="notice-mini-excerpt">
+                    {excerpt.slice(0, 95)}{excerpt.length > 95 ? '...' : ''}
+                  </p>
                 </div>
-              ))}
+              );
+            })}
             </div>
           </div>
         </div>

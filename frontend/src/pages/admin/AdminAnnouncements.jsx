@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Megaphone, Search, Plus, Edit2, Trash2, Eye, Send, Undo2, FileText } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, Send, Undo2 } from 'lucide-react';
 import { announcementService } from '../../services/announcementService';
-import { activityService } from '../../services/activityService';
 import PageHeader from '../../components/common/PageHeader';
 import SearchBar from '../../components/common/SearchBar';
 import Select from '../../components/common/Select';
@@ -17,9 +16,66 @@ import Textarea from '../../components/common/Textarea';
 import { useToast } from '../../components/common/Toast';
 import './AdminPages.css';
 
-const CATEGORIES = ['All', 'Examination', 'Academic', 'Administrative', 'Urgent'];
+const CATEGORIES = ['All', 'Examination', 'Academic', 'Administrative', 'Urgent', 'Result'];
 const PRIORITIES = ['All', 'High', 'Normal', 'Low'];
 const STATUSES = ['All', 'Published', 'Draft'];
+const AUDIENCES = ['All Students', 'Students', 'Admins'];
+
+const CATEGORY_TO_LABEL = {
+  exam: 'Examination',
+  academic: 'Academic',
+  general: 'Administrative',
+  important: 'Urgent',
+  result: 'Result',
+};
+
+const PRIORITY_TO_LABEL = {
+  high: 'High',
+  normal: 'Normal',
+  low: 'Low',
+};
+
+const AUDIENCE_TO_LABEL = {
+  all: 'All Students',
+  students: 'Students',
+  admins: 'Admins',
+};
+
+const recordId = (record) => record?.id || record?._id;
+
+const isPublished = (announcement) => announcement?.published === true;
+
+const categoryLabel = (value) => CATEGORY_TO_LABEL[value] || value || 'N/A';
+
+const priorityLabel = (value) => (
+  PRIORITY_TO_LABEL[String(value || '').toLowerCase()] || value || 'N/A'
+);
+
+const audienceLabel = (announcement) => (
+  AUDIENCE_TO_LABEL[announcement?.targetAudience] || announcement?.targetAudience || 'N/A'
+);
+
+const authorName = (announcement) => announcement?.createdBy?.name || 'N/A';
+
+const formatDate = (value) => {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+const emptyForm = () => ({
+  title: '',
+  category: 'Examination',
+  priority: 'Normal',
+  audience: 'All Students',
+  content: '',
+  status: 'Published',
+});
 
 const AdminAnnouncements = () => {
   const [announcements, setAnnouncements] = useState([]);
@@ -36,16 +92,7 @@ const AdminAnnouncements = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [currentAnn, setCurrentAnn] = useState(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    category: 'Examination',
-    priority: 'Normal',
-    audience: 'All Students',
-    content: '',
-    author: 'Office of the Controller of Examinations',
-    attachmentName: '',
-    status: 'Published',
-  });
+  const [formData, setFormData] = useState(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
 
   // Delete dialog
@@ -85,16 +132,7 @@ const AdminAnnouncements = () => {
 
   const handleOpenCreate = () => {
     setModalMode('create');
-    setFormData({
-      title: '',
-      category: 'Examination',
-      priority: 'Normal',
-      audience: 'All Students',
-      content: '',
-      author: 'Office of the Controller of Examinations',
-      attachmentName: '',
-      status: 'Published',
-    });
+    setFormData(emptyForm());
     setIsModalOpen(true);
   };
 
@@ -103,13 +141,11 @@ const AdminAnnouncements = () => {
     setCurrentAnn(ann);
     setFormData({
       title: ann.title || '',
-      category: ann.category || 'Examination',
-      priority: ann.priority || 'Normal',
-      audience: ann.audience || 'All Students',
+      category: CATEGORY_TO_LABEL[ann.category] || ann.category || 'Examination',
+      priority: PRIORITY_TO_LABEL[String(ann.priority || '').toLowerCase()] || 'Normal',
+      audience: AUDIENCE_TO_LABEL[ann.targetAudience] || 'All Students',
       content: ann.content || '',
-      author: ann.author || '',
-      attachmentName: ann.attachment?.name || '',
-      status: ann.status || 'Published',
+      status: isPublished(ann) ? 'Published' : 'Draft',
     });
     setIsModalOpen(true);
   };
@@ -125,11 +161,14 @@ const AdminAnnouncements = () => {
     try {
       if (modalMode === 'create') {
         await announcementService.create(formData);
-        activityService.log('Published Announcement', formData.title, `Broadcasted circular notice to ${formData.audience}`, 'Admin Officer', 'announcements').catch(() => {});
-        showToast('Announcement broadcasted successfully', 'success');
+        showToast('Announcement saved successfully', 'success');
       } else {
-        await announcementService.update(currentAnn.id, formData);
-        activityService.log('Updated Announcement', formData.title, `Edited circular content`, 'Admin Officer', 'announcements').catch(() => {});
+        const announcementId = recordId(currentAnn);
+        if (!announcementId) {
+          showToast('Announcement is missing an ID', 'error');
+          return;
+        }
+        await announcementService.update(announcementId, formData);
         showToast('Announcement updated', 'success');
       }
       setIsModalOpen(false);
@@ -142,19 +181,23 @@ const AdminAnnouncements = () => {
   };
 
   const handleTogglePublish = async (ann) => {
+    const announcementId = recordId(ann);
+    if (!announcementId) {
+      showToast('Announcement is missing an ID', 'error');
+      return;
+    }
+
     try {
-      if (ann.status === 'Published') {
-        await announcementService.unpublish(ann.id);
-        activityService.log('Unpublished Circular', ann.title, `Moved circular to draft status`, 'Admin Officer', 'announcements').catch(() => {});
+      if (isPublished(ann)) {
+        await announcementService.unpublish(announcementId);
         showToast('Announcement reverted to Draft', 'info');
       } else {
-        await announcementService.publish(ann.id);
-        activityService.log('Published Circular', ann.title, `Activated announcement on student portal`, 'Admin Officer', 'announcements').catch(() => {});
+        await announcementService.publish(announcementId);
         showToast('Announcement published', 'success');
       }
       fetchAnnouncements();
     } catch (e) {
-      showToast('Failed to change publish status', 'error');
+      showToast(e.message || 'Failed to change publish status', 'error');
     }
   };
 
@@ -164,7 +207,7 @@ const AdminAnnouncements = () => {
 
     setDeleteDialog(prev => ({ ...prev, isLoading: true }));
     try {
-      await announcementService.delete(ann.id);
+      await announcementService.delete(recordId(ann));
       showToast('Announcement deleted', 'success');
       setDeleteDialog({ isOpen: false, announcement: null, isLoading: false });
       fetchAnnouncements();
@@ -181,38 +224,40 @@ const AdminAnnouncements = () => {
       render: (val, row) => (
         <div className="table-ann-cell">
           <span className="ann-title-text">{val}</span>
-          <span className="ann-author-text">By {row.author} • {row.publishDate}</span>
+          <span className="ann-author-text">By {authorName(row)} • {formatDate(row.publishDate || row.createdAt)}</span>
         </div>
       ),
     },
     {
       title: 'Category',
       key: 'category',
-      render: (val) => <StatusBadge status={val} size="sm" />,
+      render: (val) => <StatusBadge status={categoryLabel(val)} size="sm" />,
     },
     {
       title: 'Priority',
       key: 'priority',
-      render: (val) => <StatusBadge status={val} size="sm" />,
+      render: (val) => <StatusBadge status={priorityLabel(val)} size="sm" />,
     },
     {
       title: 'Audience',
-      key: 'audience',
-      render: (val) => <span className="table-audience-badge">{val}</span>,
+      key: 'targetAudience',
+      render: (_val, row) => <span className="table-audience-badge">{audienceLabel(row)}</span>,
     },
     {
       title: 'Status',
-      key: 'status',
-      render: (val) => <StatusBadge status={val} size="sm" />,
+      key: 'published',
+      render: (_val, row) => <StatusBadge status={isPublished(row) ? 'Published' : 'Draft'} size="sm" />,
     },
     {
       title: 'Actions',
       key: 'id',
       align: 'right',
-      render: (val, row) => (
+      render: (_val, row) => {
+        const announcementId = recordId(row);
+        return (
         <div className="table-row-actions">
           <Link
-            to={`/admin/announcements/${val}`}
+            to={`/admin/announcements/${announcementId}`}
             className="row-action-btn"
             title="View announcement"
           >
@@ -221,10 +266,10 @@ const AdminAnnouncements = () => {
           <button
             type="button"
             className="row-action-btn"
-            title={row.status === 'Published' ? 'Unpublish' : 'Publish'}
+            title={isPublished(row) ? 'Unpublish' : 'Publish'}
             onClick={() => handleTogglePublish(row)}
           >
-            {row.status === 'Published' ? <Undo2 size={15} /> : <Send size={15} />}
+            {isPublished(row) ? <Undo2 size={15} /> : <Send size={15} />}
           </button>
           <button
             type="button"
@@ -243,7 +288,8 @@ const AdminAnnouncements = () => {
             <Trash2 size={15} />
           </button>
         </div>
-      ),
+        );
+      },
     },
   ];
 
@@ -388,10 +434,10 @@ const AdminAnnouncements = () => {
             </FormField>
 
             <FormField label="Target Audience" required>
-              <Input
+              <Select
                 value={formData.audience}
                 onChange={(e) => setFormData(prev => ({ ...prev, audience: e.target.value }))}
-                placeholder="e.g. All Students"
+                options={AUDIENCES}
                 disabled={isSaving}
               />
             </FormField>
@@ -407,25 +453,14 @@ const AdminAnnouncements = () => {
             />
           </FormField>
 
-          <div className="form-grid-two">
-            <FormField label="Issuing Authority">
-              <Input
-                value={formData.author}
-                onChange={(e) => setFormData(prev => ({ ...prev, author: e.target.value }))}
-                placeholder="e.g. Office of Controller of Exams"
-                disabled={isSaving}
-              />
-            </FormField>
-
-            <FormField label="Attachment File Name (Optional)">
-              <Input
-                value={formData.attachmentName}
-                onChange={(e) => setFormData(prev => ({ ...prev, attachmentName: e.target.value }))}
-                placeholder="e.g. Schedule_Fall_2026.pdf"
-                disabled={isSaving}
-              />
-            </FormField>
-          </div>
+          <FormField label="Publication">
+            <Select
+              value={formData.status}
+              onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+              options={['Published', 'Draft']}
+              disabled={isSaving}
+            />
+          </FormField>
         </form>
       </Modal>
 

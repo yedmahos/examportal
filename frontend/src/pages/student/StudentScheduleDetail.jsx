@@ -1,0 +1,62 @@
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import PageHeader from "../../components/common/PageHeader";
+import StatusBadge from "../../components/common/StatusBadge";
+import LoadingState from "../../components/common/LoadingState";
+import ErrorState from "../../components/common/ErrorState";
+import { scheduleService } from "../../services/resourceService";
+
+const Line = ({ label, value }) => (
+  <div className="phase1-detail-row">
+    <span>{label}</span>
+    <strong>{value || "N/A"}</strong>
+  </div>
+);
+
+const StudentScheduleDetail = () => {
+  const { id } = useParams();
+  const [item, setItem] = useState(null);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setIsLoading(true);
+    scheduleService.get(id)
+      .then((response) => { if (active) setItem(response.data); })
+      .catch((err) => { if (active) setError(err.message || "Schedule not found"); })
+      .finally(() => { if (active) setIsLoading(false); });
+    return () => { active = false; };
+  }, [id]);
+
+  if (isLoading) return <LoadingState message="Loading your examination..." />;
+  if (error || !item) return <ErrorState message={error || "Schedule not found"} />;
+
+  const roomLabel = item.room
+    ? `${item.room.building || ""} ${item.room.roomNumber || ""}`.trim()
+    : "";
+
+  return (
+    <div className="animate-fade-in">
+      <PageHeader
+        title={item.subject?.name || "Examination"}
+        subtitle={item.examination?.title || ""}
+        backUrl="/exams"
+        badge={<StatusBadge status={item.status} />}
+      />
+      <div className="admin-panel-card phase1-detail">
+        <Line label="Subject code" value={item.subject?.code} />
+        <Line label="Date" value={item.date ? new Date(item.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : ""} />
+        <Line label="Session" value={item.session?.name} />
+        <Line label="Start time" value={item.session?.startTime} />
+        <Line label="End time" value={item.session?.endTime} />
+        <Line label="Reporting time" value={item.reportingTime || item.session?.reportingTime} />
+        <Line label="Duration" value={item.duration ? `${item.duration} minutes` : ""} />
+        <Line label="Room / building" value={roomLabel} />
+        <Line label="Instructions" value={item.examination?.instructions} />
+      </div>
+    </div>
+  );
+};
+
+export default StudentScheduleDetail;

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Award, Search, Plus, Edit2, Trash2, Eye, CheckCircle, FileText, Send, Undo2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, Send, Undo2 } from 'lucide-react';
 import { resultService } from '../../services/resultService';
 import { studentService } from '../../services/studentService';
 import { examService } from '../../services/examService';
-import { activityService } from '../../services/activityService';
 import PageHeader from '../../components/common/PageHeader';
 import SearchBar from '../../components/common/SearchBar';
 import Select from '../../components/common/Select';
@@ -15,7 +14,6 @@ import Modal from '../../components/common/Modal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import FormField from '../../components/common/FormField';
 import Input from '../../components/common/Input';
-import Textarea from '../../components/common/Textarea';
 import { useToast } from '../../components/common/Toast';
 import './AdminPages.css';
 
@@ -27,7 +25,9 @@ const DEPARTMENTS = [
   'Data Science & AI',
 ];
 
-const STATUSES = ['All', 'Published', 'Draft', 'Under Review'];
+const STATUSES = ['All', 'Published', 'Draft'];
+
+const resultIdOf = (result) => result?.id || result?._id;
 
 const AdminResults = () => {
   const [results, setResults] = useState([]);
@@ -41,28 +41,18 @@ const AdminResults = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
-  // Modal create/edit
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [currentResult, setCurrentResult] = useState(null);
   const [formData, setFormData] = useState({
-    studentId: '',
-    studentName: '',
-    examId: '',
-    examTitle: '',
-    examCode: '',
-    subject: '',
-    department: 'Computer Science & Engineering',
-    semester: '6th Semester',
-    academicYear: '2025 - 2026',
-    marks: 85,
-    maxMarks: 100,
-    remarks: 'Approved by board of examiners.',
-    status: 'Published',
+    student: '',
+    exam: '',
+    marks: '',
+    maxMarks: '',
+    published: false,
   });
   const [isSaving, setIsSaving] = useState(false);
 
-  // Delete dialog
   const [deleteDialog, setDeleteDialog] = useState({
     isOpen: false,
     result: null,
@@ -84,8 +74,8 @@ const AdminResults = () => {
       setResults(res.data.items);
       setTotal(res.data.total);
       setTotalPages(res.data.totalPages);
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
       showToast('Failed to load examination results', 'error');
     } finally {
       setIsLoading(false);
@@ -95,9 +85,9 @@ const AdminResults = () => {
   useEffect(() => {
     const fetchSelectOptions = async () => {
       try {
-        const sRes = await studentService.getAll({ limit: 50 });
+        const sRes = await studentService.getAll({ limit: 100 });
         setStudents(sRes.data.items);
-        const eRes = await examService.getAll({ limit: 50 });
+        const eRes = await examService.getAll({ limit: 100 });
         setExams(eRes.data.items);
       } catch (err) {
         console.error(err);
@@ -112,23 +102,13 @@ const AdminResults = () => {
 
   const handleOpenCreate = () => {
     setModalMode('create');
-    const firstStudent = students[0];
-    const firstExam = exams[0];
-
+    setCurrentResult(null);
     setFormData({
-      studentId: firstStudent?.studentId || 'STU-2024-8842',
-      studentName: firstStudent?.name || 'Rohmad Khoirudin',
-      examId: firstExam?.id || 'ex-101',
-      examTitle: firstExam?.title || 'Distributed Systems',
-      examCode: firstExam?.examCode || 'CS-401',
-      subject: firstExam?.subject || 'Distributed Systems',
-      department: firstStudent?.department || 'Computer Science & Engineering',
-      semester: firstStudent?.semester || '6th Semester',
-      academicYear: '2025 - 2026',
-      marks: 88,
-      maxMarks: 100,
-      remarks: 'Verified by departmental board.',
-      status: 'Published',
+      student: '',
+      exam: '',
+      marks: '',
+      maxMarks: '',
+      published: false,
     });
     setIsModalOpen(true);
   };
@@ -137,34 +117,66 @@ const AdminResults = () => {
     setModalMode('edit');
     setCurrentResult(result);
     setFormData({
-      studentId: result.studentId,
-      studentName: result.studentName,
-      examId: result.examId,
-      examTitle: result.examTitle,
-      examCode: result.examCode,
-      subject: result.subject,
-      department: result.department,
-      semester: result.semester,
-      academicYear: result.academicYear,
-      marks: result.marks,
-      maxMarks: result.maxMarks,
-      remarks: result.remarks,
-      status: result.status,
+      student: result.student?._id || result.student?.id || '',
+      exam: result.exam?._id || result.exam?.id || '',
+      marks: result.marksObtained ?? '',
+      maxMarks: result.maximumMarks ?? '',
+      published: Boolean(result.published),
     });
     setIsModalOpen(true);
   };
 
   const handleSaveResult = async (e) => {
     e.preventDefault();
+
+    if (!formData.student || !formData.exam) {
+      showToast('Select a student and an exam before saving', 'error');
+      return;
+    }
+
+    if (formData.marks === '' || formData.maxMarks === '') {
+      showToast('Marks secured and maximum marks are required', 'error');
+      return;
+    }
+
     setIsSaving(true);
     try {
       if (modalMode === 'create') {
-        await resultService.create(formData);
-        await activityService.log('Entered Examination Mark', formData.examTitle, `Score entered for candidate ${formData.studentName}`, 'Admin Officer', 'results');
+        const created = await resultService.create({
+          student: formData.student,
+          exam: formData.exam,
+          marksObtained: Number(formData.marks),
+          maximumMarks: Number(formData.maxMarks),
+        });
+
+        if (formData.published) {
+          const createdId = created.data?.id || created.data?._id;
+          if (!createdId) {
+            throw new Error('Result was saved but could not be published');
+          }
+          await resultService.publish(createdId);
+        }
+
         showToast('Examination result recorded', 'success');
       } else {
-        await resultService.update(currentResult.id, formData);
-        await activityService.log('Updated Examination Mark', formData.examTitle, `Score updated for ${formData.studentName}`, 'Admin Officer', 'results');
+        const currentId = resultIdOf(currentResult);
+        if (!currentId) {
+          throw new Error('Could not identify this result');
+        }
+
+        await resultService.update(currentId, {
+          marksObtained: Number(formData.marks),
+          maximumMarks: Number(formData.maxMarks),
+        });
+
+        if (Boolean(formData.published) !== Boolean(currentResult.published)) {
+          if (formData.published) {
+            await resultService.publish(currentId);
+          } else {
+            await resultService.unpublish(currentId);
+          }
+        }
+
         showToast('Result updated successfully', 'success');
       }
       setIsModalOpen(false);
@@ -177,129 +189,149 @@ const AdminResults = () => {
   };
 
   const handleTogglePublish = async (result) => {
+    const id = resultIdOf(result);
+    if (!id) {
+      showToast('Could not identify this result', 'error');
+      return;
+    }
+
     try {
-      if (result.status === 'Published') {
-        await resultService.unpublish(result.id);
-        await activityService.log('Unpublished Marksheet', result.examTitle, `Reverted mark transcript to draft for ${result.studentName}`, 'Admin Officer', 'results');
-        showToast(`Result reverted to Draft status`, 'info');
+      if (result.published) {
+        await resultService.unpublish(id);
+        showToast('Result reverted to Draft status', 'info');
       } else {
-        await resultService.publish(result.id);
-        await activityService.log('Published Marksheet', result.examTitle, `Published verified grade certificate for ${result.studentName}`, 'Admin Officer', 'results');
-        showToast(`Result published to student portal`, 'success');
+        await resultService.publish(id);
+        showToast('Result published to student portal', 'success');
       }
       fetchResults();
     } catch (err) {
-      showToast('Failed to update result status', 'error');
+      showToast(err.message || 'Failed to update result status', 'error');
     }
   };
 
   const handleDeleteResult = async () => {
     const resItem = deleteDialog.result;
-    if (!resItem) return;
+    const id = resultIdOf(resItem);
+    if (!id) return;
 
-    setDeleteDialog(prev => ({ ...prev, isLoading: true }));
+    setDeleteDialog((prev) => ({ ...prev, isLoading: true }));
     try {
-      await resultService.delete(resItem.id);
+      await resultService.delete(id);
       showToast('Result record removed', 'success');
       setDeleteDialog({ isOpen: false, result: null, isLoading: false });
       fetchResults();
     } catch (err) {
-      showToast('Failed to delete result', 'error');
-      setDeleteDialog(prev => ({ ...prev, isLoading: false }));
+      showToast(err.message || 'Failed to delete result', 'error');
+      setDeleteDialog((prev) => ({ ...prev, isLoading: false }));
     }
   };
 
   const columns = [
     {
       title: 'Candidate Name & ID',
-      key: 'studentName',
-      render: (val, row) => (
+      key: 'student',
+      render: (_, row) => (
         <div className="table-user-info">
-          <span className="user-primary-name">{val}</span>
-          <span className="table-code-chip">{row.studentId}</span>
+          <span className="user-primary-name">{row.student?.name || 'N/A'}</span>
+          <span className="table-code-chip">{row.student?.studentId || 'N/A'}</span>
         </div>
       ),
     },
     {
       title: 'Course Paper',
-      key: 'subject',
-      render: (val, row) => (
+      key: 'exam',
+      render: (_, row) => (
         <div className="table-subject-cell">
-          <span className="subject-title">{val}</span>
-          <span className="exam-full-name">{row.examCode} • {row.examTitle}</span>
+          <span className="subject-title">{row.exam?.subject || 'N/A'}</span>
+          <span className="exam-full-name">
+            {row.exam?.examCode || 'N/A'} • {row.exam?.title || 'N/A'}
+          </span>
         </div>
       ),
     },
     {
       title: 'Marks / Percentage',
-      key: 'marks',
-      render: (val, row) => (
+      key: 'marksObtained',
+      render: (_, row) => (
         <div className="table-score-col">
-          <span className="score-number">{val} / {row.maxMarks}</span>
-          <span className="score-percent">({row.percentage}%)</span>
+          <span className="score-number">
+            {row.marksObtained ?? 'N/A'} / {row.maximumMarks ?? 'N/A'}
+          </span>
+          <span className="score-percent">
+            ({row.percentage !== undefined && row.percentage !== null ? `${row.percentage}%` : 'N/A'})
+          </span>
         </div>
       ),
     },
     {
       title: 'Grade',
       key: 'grade',
-      render: (val) => (
-        <span className={`table-grade-pill grade-${val.replace('+', 'plus')}`}>
-          {val}
-        </span>
-      ),
+      render: (val) => {
+        if (!val) return 'N/A';
+        return (
+          <span className={`table-grade-pill grade-${String(val).replace('+', 'plus')}`}>
+            {val}
+          </span>
+        );
+      },
     },
     {
       title: 'Standing',
-      key: 'passFail',
-      render: (val) => <StatusBadge status={val} size="sm" />,
+      key: 'status',
+      render: (val) => <StatusBadge status={val || 'N/A'} size="sm" />,
     },
     {
       title: 'Publish State',
-      key: 'status',
-      render: (val) => <StatusBadge status={val} size="sm" />,
+      key: 'published',
+      render: (val) => <StatusBadge status={val ? 'Published' : 'Draft'} size="sm" />,
     },
     {
       title: 'Actions',
       key: 'id',
       align: 'right',
-      render: (val, row) => (
-        <div className="table-row-actions">
-          <Link
-            to={`/admin/results/${val}`}
-            className="row-action-btn"
-            title="View statement slip"
-          >
-            <Eye size={15} />
-          </Link>
-          <button
-            type="button"
-            className="row-action-btn"
-            title={row.status === 'Published' ? 'Unpublish to Draft' : 'Publish to Student Portal'}
-            onClick={() => handleTogglePublish(row)}
-          >
-            {row.status === 'Published' ? <Undo2 size={15} /> : <Send size={15} />}
-          </button>
-          <button
-            type="button"
-            className="row-action-btn"
-            title="Edit mark"
-            onClick={() => handleOpenEdit(row)}
-          >
-            <Edit2 size={15} />
-          </button>
-          <button
-            type="button"
-            className="row-action-btn btn-danger-action"
-            title="Delete mark"
-            onClick={() => setDeleteDialog({ isOpen: true, result: row, isLoading: false })}
-          >
-            <Trash2 size={15} />
-          </button>
-        </div>
-      ),
+      render: (_, row) => {
+        const id = resultIdOf(row);
+        return (
+          <div className="table-row-actions">
+            <Link
+              to={`/admin/results/${id}`}
+              className="row-action-btn"
+              title="View statement slip"
+            >
+              <Eye size={15} />
+            </Link>
+            <button
+              type="button"
+              className="row-action-btn"
+              title={row.published ? 'Unpublish to Draft' : 'Publish to Student Portal'}
+              onClick={() => handleTogglePublish(row)}
+            >
+              {row.published ? <Undo2 size={15} /> : <Send size={15} />}
+            </button>
+            <button
+              type="button"
+              className="row-action-btn"
+              title="Edit mark"
+              onClick={() => handleOpenEdit(row)}
+            >
+              <Edit2 size={15} />
+            </button>
+            <button
+              type="button"
+              className="row-action-btn btn-danger-action"
+              title="Delete mark"
+              onClick={() => setDeleteDialog({ isOpen: true, result: row, isLoading: false })}
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+        );
+      },
     },
   ];
+
+  const deleteName = deleteDialog.result?.student?.name || 'this student';
+  const deleteSubject = deleteDialog.result?.exam?.subject || 'this exam';
 
   return (
     <div className="admin-results-page animate-fade-in">
@@ -340,7 +372,7 @@ const AdminResults = () => {
                   setDepartment(e.target.value);
                   setPage(1);
                 }}
-                options={DEPARTMENTS.map(d => ({ value: d, label: d === 'All' ? 'All Departments' : d }))}
+                options={DEPARTMENTS.map((d) => ({ value: d, label: d === 'All' ? 'All Departments' : d }))}
               />
             </div>
 
@@ -351,7 +383,7 @@ const AdminResults = () => {
                   setStatus(e.target.value);
                   setPage(1);
                 }}
-                options={STATUSES.map(s => ({ value: s, label: s === 'All' ? 'All Statuses' : s }))}
+                options={STATUSES.map((s) => ({ value: s, label: s === 'All' ? 'All Statuses' : s }))}
               />
             </div>
           </div>
@@ -375,12 +407,11 @@ const AdminResults = () => {
         />
       </div>
 
-      {/* Record/Edit Result Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => !isSaving && setIsModalOpen(false)}
         title={modalMode === 'create' ? 'Record Examination Result' : 'Modify Result Entry'}
-        subtitle="Grade calculations and passing criteria will be updated automatically."
+        subtitle="Grade and pass status are calculated from the marks you enter."
         footer={
           <div className="modal-footer-btns">
             <Button
@@ -402,41 +433,29 @@ const AdminResults = () => {
       >
         <form onSubmit={handleSaveResult}>
           <div className="form-grid-two">
-            <FormField label="Candidate Name" required>
-              <Input
-                value={formData.studentName}
-                onChange={(e) => setFormData(prev => ({ ...prev, studentName: e.target.value }))}
-                placeholder="Candidate Full Name"
-                disabled={isSaving}
+            <FormField label="Student" required>
+              <Select
+                value={formData.student}
+                onChange={(e) => setFormData((prev) => ({ ...prev, student: e.target.value }))}
+                placeholder="Select a student"
+                options={students.map((student) => ({
+                  value: student.id || student._id,
+                  label: `${student.name}${student.studentId ? ` (${student.studentId})` : ''}`,
+                }))}
+                disabled={isSaving || modalMode === 'edit'}
               />
             </FormField>
 
-            <FormField label="Student ID" required>
-              <Input
-                value={formData.studentId}
-                onChange={(e) => setFormData(prev => ({ ...prev, studentId: e.target.value }))}
-                placeholder="STU-2024-XXXX"
-                disabled={isSaving}
-              />
-            </FormField>
-          </div>
-
-          <div className="form-grid-two">
-            <FormField label="Exam Title" required>
-              <Input
-                value={formData.examTitle}
-                onChange={(e) => setFormData(prev => ({ ...prev, examTitle: e.target.value }))}
-                placeholder="Course Exam Title"
-                disabled={isSaving}
-              />
-            </FormField>
-
-            <FormField label="Course Code" required>
-              <Input
-                value={formData.examCode}
-                onChange={(e) => setFormData(prev => ({ ...prev, examCode: e.target.value }))}
-                placeholder="e.g. CS-401"
-                disabled={isSaving}
+            <FormField label="Exam" required>
+              <Select
+                value={formData.exam}
+                onChange={(e) => setFormData((prev) => ({ ...prev, exam: e.target.value }))}
+                placeholder="Select an exam"
+                options={exams.map((exam) => ({
+                  value: exam.id || exam._id,
+                  label: `${exam.examCode ? `${exam.examCode} — ` : ''}${exam.subject || exam.title}`,
+                }))}
+                disabled={isSaving || modalMode === 'edit'}
               />
             </FormField>
           </div>
@@ -446,7 +465,7 @@ const AdminResults = () => {
               <Input
                 type="number"
                 value={formData.marks}
-                onChange={(e) => setFormData(prev => ({ ...prev, marks: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, marks: e.target.value }))}
                 disabled={isSaving}
               />
             </FormField>
@@ -455,42 +474,33 @@ const AdminResults = () => {
               <Input
                 type="number"
                 value={formData.maxMarks}
-                onChange={(e) => setFormData(prev => ({ ...prev, maxMarks: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, maxMarks: e.target.value }))}
                 disabled={isSaving}
               />
             </FormField>
 
-            <FormField label="Status" required>
+            <FormField label="Publication" required>
               <Select
-                value={formData.status}
-                onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                value={formData.published ? 'Published' : 'Draft'}
+                onChange={(e) => setFormData((prev) => ({
+                  ...prev,
+                  published: e.target.value === 'Published',
+                }))}
                 options={[
-                  { value: 'Published', label: 'Published' },
                   { value: 'Draft', label: 'Draft' },
-                  { value: 'Under Review', label: 'Under Review' },
+                  { value: 'Published', label: 'Published' },
                 ]}
                 disabled={isSaving}
               />
             </FormField>
           </div>
-
-          <FormField label="Evaluation Remarks">
-            <Textarea
-              value={formData.remarks}
-              onChange={(e) => setFormData(prev => ({ ...prev, remarks: e.target.value }))}
-              rows={3}
-              placeholder="Internal moderation notes or student certificate feedback"
-              disabled={isSaving}
-            />
-          </FormField>
         </form>
       </Modal>
 
-      {/* Delete Confirmation */}
       <ConfirmDialog
         isOpen={deleteDialog.isOpen}
         title="Delete Grade Record?"
-        message={`Are you sure you want to permanently remove the mark entry for ${deleteDialog.result?.studentName} in ${deleteDialog.result?.subject}?`}
+        message={`Are you sure you want to permanently remove the mark entry for ${deleteName} in ${deleteSubject}?`}
         confirmText="Delete Record"
         confirmVariant="danger"
         type="danger"

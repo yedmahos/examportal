@@ -68,9 +68,39 @@ const createNotification = async (req, res) => {
 // GET MY NOTIFICATIONS
 const getMyNotifications = async (req, res) => {
     try {
-        const notifications = await Notification.find({
+        const query = {
             recipient: req.user.userId
-        }).sort({
+        };
+
+        if (req.query.type && req.query.type !== "All") {
+            const typeMap = {
+                exam: "exam",
+                exams: "exam",
+                result: "result",
+                results: "result",
+                announcement: "announcement",
+                announcements: "announcement",
+                important: "important",
+                system: "system"
+            };
+
+            const mappedType = typeMap[
+                String(req.query.type).trim().toLowerCase()
+            ];
+
+            if (mappedType) {
+                query.type = mappedType;
+            }
+        }
+
+        if (
+            req.query.isRead === "true" ||
+            req.query.isRead === "false"
+        ) {
+            query.isRead = req.query.isRead === "true";
+        }
+
+        const notifications = await Notification.find(query).sort({
             createdAt: -1
         });
 

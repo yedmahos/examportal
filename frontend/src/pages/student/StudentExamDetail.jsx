@@ -1,21 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   Calendar,
   Clock,
   MapPin,
-  Award,
+  BookOpen,
   UserCheck,
-  FileText,
-  ShieldCheck,
-  AlertCircle,
-  Building,
-  GraduationCap
+  ShieldCheck
 } from 'lucide-react';
 import { examService } from '../../services/examService';
 import PageHeader from '../../components/common/PageHeader';
 import StatusBadge from '../../components/common/StatusBadge';
-import Button from '../../components/common/Button';
 import LoadingState from '../../components/common/LoadingState';
 import ErrorState from '../../components/common/ErrorState';
 import './StudentPages.css';
@@ -106,12 +101,12 @@ const StudentExamDetail = () => {
 
             <div className="spec-card">
               <div className="spec-card-icon text-info bg-info-light">
-                <Award size={18} />
+                <BookOpen size={18} />
               </div>
               <div className="spec-card-text">
-                <span className="spec-title">Scoring Scheme</span>
-                <span className="spec-value">{exam.totalMarks} Total Marks</span>
-                <span className="spec-sub">Passing: {exam.passingMarks} Marks</span>
+                <span className="spec-title">Subject</span>
+                <span className="spec-value">{exam.subject || 'N/A'}</span>
+                <span className="spec-sub">{exam.examCode || 'N/A'}</span>
               </div>
             </div>
           </div>
@@ -156,15 +151,11 @@ const StudentExamDetail = () => {
               </div>
               <div className="meta-pair">
                 <span className="meta-k">Semester</span>
-                <span className="meta-v">{exam.semester}</span>
+                <span className="meta-v">{exam.semester ? `Semester ${exam.semester}` : 'N/A'}</span>
               </div>
               <div className="meta-pair">
                 <span className="meta-k">Academic Year</span>
-                <span className="meta-v">{exam.academicYear}</span>
-              </div>
-              <div className="meta-pair">
-                <span className="meta-k">Credits</span>
-                <span className="meta-v">{exam.credits ? `${exam.credits} Credit Units` : 'N/A'}</span>
+                <span className="meta-v">{exam.academicYear || 'N/A'}</span>
               </div>
             </div>
           </div>
@@ -174,8 +165,8 @@ const StudentExamDetail = () => {
             <div className="invigilator-box">
               <UserCheck size={20} className="text-primary" />
               <div className="invigilator-text">
-                <span className="invigilator-name">{exam.invigilator}</span>
-                <span className="invigilator-role">Chief Hall Invigilator</span>
+                <span className="invigilator-name">N/A</span>
+                <span className="invigilator-role">No invigilator is stored for this exam</span>
               </div>
             </div>
           </div>

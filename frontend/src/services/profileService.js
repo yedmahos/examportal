@@ -38,6 +38,8 @@ export const profileService = {
     delete sanitized.id;
     delete sanitized._id;
     delete sanitized.email;
+    delete sanitized.designation;
+    delete sanitized.author;
 
     const response = await put("/profile", sanitized);
 

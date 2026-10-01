@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Search, Plus, Edit2, UserX, UserCheck, Eye, Filter } from 'lucide-react';
 import { studentService } from '../../services/studentService';
-import { activityService } from '../../services/activityService';
 import PageHeader from '../../components/common/PageHeader';
 import SearchBar from '../../components/common/SearchBar';
 import Select from '../../components/common/Select';
@@ -156,11 +155,9 @@ const AdminStudents = () => {
     try {
       if (modalMode === 'create') {
         await studentService.create(formData);
-        await activityService.log('Enrolled Student', formData.name, `New student account created with ID ${formData.studentId}`, 'Admin Officer', 'students');
         showToast('New student record created successfully', 'success');
       } else {
         await studentService.update(currentStudent.id, formData);
-        await activityService.log('Updated Student Record', formData.name, `Updated student data for ID ${formData.studentId}`, 'Admin Officer', 'students');
         showToast('Student record updated successfully', 'success');
       }
       setIsModalOpen(false);
@@ -180,11 +177,6 @@ const AdminStudents = () => {
     try {
       const nextStatus = student.status === 'active' ? 'inactive' : 'active';
       await studentService.toggleStatus(student.id || student._id, nextStatus);
-      try {
-        await activityService.log('Changed Student Status', student.name, `Student status updated to ${nextStatus}`, 'Admin Officer', 'students');
-      } catch (logErr) {
-        console.warn('Activity log failed:', logErr);
-      }
       showToast(`Student record is now ${nextStatus}`, 'success');
       setConfirmDialog({ isOpen: false, student: null, isLoading: false });
       fetchStudents();
@@ -200,7 +192,7 @@ const AdminStudents = () => {
       key: 'name',
       render: (val, row) => (
         <div className="table-user-cell">
-          <Avatar src={row.avatar} name={val} size="sm" />
+          <Avatar src={row.profileImage || row.avatar} name={val} size="sm" />
           <div className="table-user-info">
             <span className="user-primary-name">{val}</span>
             <span className="user-sub-email">{row.email}</span>
@@ -473,7 +465,7 @@ const AdminStudents = () => {
               <FormField
                 label="Initial Password"
                 required
-                hint="The student uses this to sign in and can change it later."
+                hint="The student uses this password to sign in."
               >
                 <Input
                   type="password"
@@ -495,7 +487,7 @@ const AdminStudents = () => {
                 max="4"
                 value={formData.gpa}
                 onChange={(e) => setFormData(prev => ({ ...prev, gpa: e.target.value }))}
-                placeholder="e.g. 3.75"
+                placeholder="Optional"
                 disabled={isSaving}
               />
             </FormField>
@@ -517,7 +509,7 @@ const AdminStudents = () => {
                 min="0"
                 value={formData.creditsCompleted}
                 onChange={(e) => setFormData(prev => ({ ...prev, creditsCompleted: e.target.value }))}
-                placeholder="e.g. 120"
+                placeholder="Optional"
                 disabled={isSaving}
               />
             </FormField>
@@ -528,7 +520,7 @@ const AdminStudents = () => {
                 min="0"
                 value={formData.totalCredits}
                 onChange={(e) => setFormData(prev => ({ ...prev, totalCredits: e.target.value }))}
-                placeholder="e.g. 144"
+                placeholder="Optional"
                 disabled={isSaving}
               />
             </FormField>

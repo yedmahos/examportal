@@ -10,7 +10,6 @@ const examSchema = new mongoose.Schema(
 
         subject: {
             type: String,
-            required: true,
             trim: true
         },
 
@@ -26,13 +25,11 @@ const examSchema = new mongoose.Schema(
 
         department: {
             type: String,
-            required: true,
             trim: true
         },
 
         program: {
             type: String,
-            required: true,
             trim: true
         },
 
@@ -45,35 +42,76 @@ const examSchema = new mongoose.Schema(
 
         academicYear: {
             type: String,
-            required: true,
             trim: true
         },
 
         examDate: {
-            type: Date,
-            required: true
+            type: Date
         },
 
         startTime: {
-            type: String,
-            required: true
+            type: String
         },
 
         endTime: {
-            type: String,
-            required: true
+            type: String
         },
 
         venue: {
             type: String,
-            required: true,
             trim: true
         },
 
         duration: {
             type: Number,
-            required: true,
             min: 1
+        },
+
+        examType: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "ExamType"
+        },
+
+        startDate: {
+            type: Date
+        },
+
+        endDate: {
+            type: Date
+        },
+
+        reportingTime: {
+            type: String,
+            trim: true
+        },
+
+        sessions: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "ExamSession"
+            }
+        ],
+
+        eligibleBatches: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Batch"
+            }
+        ],
+
+        departmentRef: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Department"
+        },
+
+        programRef: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Program"
+        },
+
+        academicYearRef: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "AcademicYear"
         },
 
         instructions: {

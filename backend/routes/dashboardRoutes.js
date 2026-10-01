@@ -24,7 +24,7 @@ router.get(
 router.get(
     "/admin",
     protect,
-    authorize("admin"),
+    authorize("admin", "department_admin", "examination_cell", "faculty"),
     getAdminDashboard
 );
 

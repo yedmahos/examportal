@@ -4,6 +4,9 @@ const Result = require("../models/Result");
 const Announcement = require("../models/Announcement");
 const Notification = require("../models/Notification");
 const ActivityLog = require("../models/ActivityLog");
+const Subject = require("../models/Subject");
+const Room = require("../models/Room");
+const Schedule = require("../models/Schedule");
 
 // Get student dashboard
 const getStudentDashboard = async (req, res) => {
@@ -19,19 +22,36 @@ const getStudentDashboard = async (req, res) => {
             });
         }
 
-        const upcomingExams = await Exam.find({
-            department: student.department,
-            program: student.program,
-            semester: student.semester,
-            academicYear: student.academicYear,
-            examDate: { $gte: now },
-            status: {
-                $in: ["scheduled", "ongoing"]
-            },
-            isArchived: false
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+
+        const studentSchedules = await Schedule.find({
+            eligibleStudents: student._id,
+            status: "scheduled",
+            date: { $gte: today }
         })
-            .sort({ examDate: 1 })
+            .populate("examination", "title instructions")
+            .populate("subject", "code name")
+            .populate("session", "name reportingTime startTime endTime")
+            .populate("room", "roomNumber building floor")
+            .sort({ date: 1 })
             .limit(5);
+
+        const upcomingExams = studentSchedules.map((schedule) => ({
+            _id: schedule._id,
+            subject: schedule.subject?.name || null,
+            title: schedule.examination?.title || null,
+            examCode: schedule.subject?.code || null,
+            examDate: schedule.date,
+            startTime: schedule.session?.startTime || null,
+            endTime: schedule.session?.endTime || null,
+            reportingTime: schedule.reportingTime || schedule.session?.reportingTime || null,
+            session: schedule.session?.name || null,
+            venue: schedule.room?.building || null,
+            room: schedule.room?.roomNumber || null,
+            instructions: schedule.examination?.instructions || "",
+            status: schedule.status
+        }));
 
         const recentResults = await Result.find({
             student: req.user.userId,
@@ -39,7 +59,7 @@ const getStudentDashboard = async (req, res) => {
         })
             .populate({
                 path: "exam",
-                select: "examCode title subject examDate semester venue duration status"
+                select: "examCode title subject examDate semester venue room duration status"
             })
             .sort({ createdAt: -1 })
             .limit(5);
@@ -151,7 +171,13 @@ const getAdminDashboard = async (req, res) => {
             upcomingExams,
             completedExams,
             publishedResults,
-            totalAnnouncements
+            totalAnnouncements,
+            totalSubjects,
+            totalRooms,
+            subjectsScheduled,
+            schedulesWithWarnings,
+            currentExamination,
+            roomsAllocated
         ] = await Promise.all([
             User.countDocuments({
                 role: "student"
@@ -176,7 +202,31 @@ const getAdminDashboard = async (req, res) => {
                 published: true
             }),
 
-            Announcement.countDocuments()
+            Announcement.countDocuments(),
+
+            Subject.countDocuments({ status: "active" }),
+
+            Room.countDocuments({ status: "active" }),
+
+            Schedule.distinct("subject", { status: "scheduled" }).then((ids) => ids.length),
+
+            Schedule.countDocuments({
+                status: { $in: ["draft", "scheduled"] },
+                "warnings.0": { $exists: true }
+            }),
+
+            Exam.findOne({
+                isArchived: false,
+                startDate: { $lte: now },
+                endDate: { $gte: now }
+            })
+                .select("title startDate endDate semester")
+                .sort({ startDate: -1 }),
+
+            Schedule.countDocuments({
+                status: "scheduled",
+                room: { $ne: null }
+            })
         ]);
 
         const recentExams = await Exam.find({
@@ -205,6 +255,14 @@ const getAdminDashboard = async (req, res) => {
         const recentActivities = await ActivityLog.find()
             .populate("user", "name email role")
             .sort({ createdAt: -1 })
+            .limit(5);
+
+        const upcomingExamList = await Exam.find({
+            isArchived: false,
+            examDate: { $gte: now },
+            status: { $in: ["scheduled", "ongoing"] }
+        })
+            .sort({ examDate: 1 })
             .limit(5);
 
         const examTrendsAggregation = await Exam.aggregate([
@@ -247,12 +305,19 @@ const getAdminDashboard = async (req, res) => {
                 upcomingExams,
                 completedExams,
                 publishedResults,
-                totalAnnouncements
+                totalAnnouncements,
+                totalSubjects,
+                totalRooms,
+                subjectsScheduled,
+                conflicts: schedulesWithWarnings,
+                roomsAllocated,
+                currentExamination
             },
             recentExams,
             recentResults,
             recentAnnouncements,
             recentActivities,
+            upcomingExams: upcomingExamList,
             examTrends
         });
     } catch (error) {
