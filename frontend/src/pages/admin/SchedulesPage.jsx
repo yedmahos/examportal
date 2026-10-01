@@ -21,6 +21,54 @@ import {
 } from "../../services/resourceService";
 import "./AdminPages.css";
 
+const EligibilityPreview = ({ loading, error, eligibility, ready, studentLabel }) => {
+  if (!ready) {
+    return <p className="phase1-counts">Select an examination and subject to preview eligibility.</p>;
+  }
+
+  if (loading) {
+    return <p className="phase1-counts">Loading eligibility...</p>;
+  }
+
+  if (error) {
+    return <p className="phase1-counts">{error}</p>;
+  }
+
+  if (!eligibility) return null;
+
+  const groups = [
+    ["Eligible", eligibility.eligible, false],
+    ["Registered", eligibility.registered, false],
+    ["Blocked", eligibility.blocked, true],
+  ];
+  const total = groups.reduce((sum, [, rows]) => sum + rows.length, 0);
+
+  return (
+    <div>
+      {total === 0 && <p className="phase1-counts">No eligibility records for this examination and subject.</p>}
+      <div className="phase1-eligibility">
+      {groups.map(([title, rows, showReason]) => (
+        <section key={title} className="phase1-eligibility-group">
+          <h4>{title}</h4>
+          {rows.length === 0 ? (
+            <p>None</p>
+          ) : (
+            <ul>
+              {rows.map((row) => (
+                <li key={row.id || row._id}>
+                  <span>{studentLabel(row)}</span>
+                  {showReason && <small>{row.reason || "No reason recorded"}</small>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ))}
+      </div>
+    </div>
+  );
+};
+
 const emptyForm = () => ({
   examination: "",
   subject: "",
@@ -39,24 +87,25 @@ const SchedulesPage = () => {
   const [form, setForm] = useState(emptyForm());
   const [examinations, setExaminations] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [subjectNote, setSubjectNote] = useState("");
   const [sessions, setSessions] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [preview, setPreview] = useState(null);
+  const [eligibility, setEligibility] = useState(null);
+  const [eligibilityLoading, setEligibilityLoading] = useState(false);
+  const [eligibilityError, setEligibilityError] = useState("");
   const [conflicts, setConflicts] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const loadLists = async () => {
-    const [examRes, subjectRes, sessionRes, roomRes] = await Promise.all([
+    const [examRes, sessionRes, roomRes] = await Promise.all([
       examService.getAll({ limit: 100 }),
-      subjectService.list({ limit: 100, status: "active" }),
       sessionService.list({ limit: 100, status: "active" }),
       roomService.list({ limit: 100, status: "active" }),
     ]);
     setExaminations(examRes.data.items);
-    setSubjects(subjectRes.data.items);
     setSessions(sessionRes.data.items);
     setRooms(roomRes.data.items);
   };
@@ -79,6 +128,110 @@ const SchedulesPage = () => {
     loadSchedules();
   }, []);
 
+  const selectedExamination = examinations.find((item) => item.id === form.examination);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadSubjects = async () => {
+      if (!form.examination) {
+        setSubjects([]);
+        setSubjectNote("");
+        return;
+      }
+
+      if (!selectedExamination) {
+        return;
+      }
+
+      const programRef = selectedExamination.programRef;
+      const programId = typeof programRef === "string"
+        ? programRef
+        : (programRef?.id || programRef?._id || "");
+      const semester = selectedExamination.semester;
+
+      if (!programId || !semester) {
+        if (!cancelled) {
+          setSubjects([]);
+          setSubjectNote("This examination has no program and semester, so subjects cannot be matched.");
+          setForm((current) => ({ ...current, subject: "", duration: "" }));
+        }
+        return;
+      }
+
+      try {
+        const response = await subjectService.list({
+          program: programId,
+          semester,
+          status: "active",
+          limit: 100,
+        });
+        if (cancelled) return;
+
+        const nextSubjects = response.data.items || [];
+        setSubjects(nextSubjects);
+        setSubjectNote(nextSubjects.length ? "" : "No active subjects match this examination.");
+        setForm((current) => {
+          const match = nextSubjects.find((item) => item.id === current.subject);
+          if (match) {
+            return {
+              ...current,
+              duration: typeof match.duration === "number" ? String(match.duration) : "",
+            };
+          }
+          return { ...current, subject: "", duration: "" };
+        });
+      } catch (err) {
+        if (!cancelled) {
+          setSubjects([]);
+          setSubjectNote(err.message || "Failed to load subjects");
+        }
+      }
+    };
+
+    loadSubjects();
+    return () => {
+      cancelled = true;
+    };
+  }, [form.examination, selectedExamination?.programRef, selectedExamination?.semester]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!form.examination || !form.subject) {
+      setEligibility(null);
+      setEligibilityError("");
+      setEligibilityLoading(false);
+      return undefined;
+    }
+
+    setEligibility(null);
+    setEligibilityLoading(true);
+    setEligibilityError("");
+
+    eligibilityService.list({
+      examination: form.examination,
+      subject: form.subject,
+      limit: 100,
+    }).then((response) => {
+      if (cancelled) return;
+      const rows = response.data.items || [];
+      setEligibility({
+        eligible: rows.filter((row) => row.eligibilityStatus === "eligible"),
+        registered: rows.filter((row) => row.eligibilityStatus === "registered"),
+        blocked: rows.filter((row) => row.eligibilityStatus === "blocked"),
+      });
+    }).catch((err) => {
+      if (!cancelled) setEligibilityError(err.message || "Could not load eligibility");
+    }).finally(() => {
+      if (!cancelled) setEligibilityLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [form.examination, form.subject]);
+
   const payload = () => ({
     examination: form.examination,
     subject: form.subject,
@@ -90,22 +243,39 @@ const SchedulesPage = () => {
     status: form.status,
   });
 
-  const previewEligibility = async () => {
-    if (!form.examination || !form.subject) {
-      showToast("Select an examination and subject", "error");
-      return;
-    }
-    try {
-      const response = await eligibilityService.list({
-        examination: form.examination,
-        subject: form.subject,
-        limit: 1,
-      });
-      const counts = response.data.counts || {};
-      setPreview((counts.eligible || 0) + (counts.registered || 0));
-    } catch (err) {
-      showToast(err.message || "Could not load eligibility", "error");
-    }
+  const onExaminationChange = (examinationId) => {
+    setConflicts(null);
+    setForm((current) => ({
+      ...current,
+      examination: examinationId,
+      subject: "",
+      duration: "",
+    }));
+  };
+
+  const onSubjectChange = (subjectId) => {
+    const subject = subjects.find((item) => item.id === subjectId);
+    setConflicts(null);
+    setForm((current) => ({
+      ...current,
+      subject: subjectId,
+      duration: typeof subject?.duration === "number" ? String(subject.duration) : "",
+    }));
+  };
+
+  const onSessionChange = (sessionId) => {
+    const session = sessions.find((item) => item.id === sessionId);
+    setForm((current) => ({
+      ...current,
+      session: sessionId,
+      reportingTime: session?.reportingTime || "",
+    }));
+  };
+
+  const studentLabel = (row) => {
+    const name = row.student?.name || "N/A";
+    const studentId = row.student?.studentId;
+    return studentId ? `${studentId} · ${name}` : name;
   };
 
   const checkConflicts = async () => {
@@ -146,22 +316,28 @@ const SchedulesPage = () => {
         <form className="admin-panel-card phase1-form" onSubmit={save}>
           <div className="phase1-grid">
             <FormField label="Examination" required>
-              <Select value={form.examination} onChange={(e) => setForm({ ...form, examination: e.target.value })} options={examinations.map((item) => ({ value: item.id, label: item.title }))} placeholder="Select examination" />
+              <Select value={form.examination} onChange={(e) => onExaminationChange(e.target.value)} options={examinations.map((item) => ({ value: item.id, label: item.title }))} placeholder="Select examination" />
             </FormField>
-            <FormField label="Subject" required>
-              <Select value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} options={subjects.map((item) => ({ value: item.id, label: `${item.code} · ${item.name}` }))} placeholder="Select subject" />
+            <FormField label="Subject" required helperText={subjectNote || "Subjects for the selected examination program and semester"}>
+              <Select
+                value={form.subject}
+                onChange={(e) => onSubjectChange(e.target.value)}
+                options={subjects.map((item) => ({ value: item.id, label: `${item.code} · ${item.name}` }))}
+                placeholder={form.examination ? "Select subject" : "Select an examination first"}
+                disabled={!form.examination}
+              />
             </FormField>
             <FormField label="Date" required>
               <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
             </FormField>
             <FormField label="Session" required>
-              <Select value={form.session} onChange={(e) => setForm({ ...form, session: e.target.value })} options={sessions.map((item) => ({ value: item.id, label: `${item.name} ${item.startTime}-${item.endTime}` }))} placeholder="Select session" />
+              <Select value={form.session} onChange={(e) => onSessionChange(e.target.value)} options={sessions.map((item) => ({ value: item.id, label: `${item.name} ${item.startTime}-${item.endTime}` }))} placeholder="Select session" />
             </FormField>
-            <FormField label="Duration (minutes)">
-              <Input type="number" min="1" value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} placeholder="Subject or session duration" />
+            <FormField label="Duration (minutes)" helperText="From the selected subject">
+              <Input type="number" readOnly value={form.duration} placeholder="No duration on this subject" />
             </FormField>
-            <FormField label="Reporting time">
-              <Input type="time" value={form.reportingTime} onChange={(e) => setForm({ ...form, reportingTime: e.target.value })} />
+            <FormField label="Reporting time" helperText="From the selected session">
+              <Input type="time" readOnly value={form.reportingTime} />
             </FormField>
             <FormField label="Room">
               <Select value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} options={rooms.map((item) => ({ value: item.id, label: `${item.building} ${item.roomNumber} (${item.capacity})` }))} placeholder="Select room" />
@@ -171,11 +347,16 @@ const SchedulesPage = () => {
             </FormField>
           </div>
           <div className="toolbar-selects-group">
-            <Button type="button" variant="outline" onClick={previewEligibility}>Eligibility preview</Button>
             <Button type="button" variant="outline" onClick={checkConflicts}>Conflict check</Button>
             <Button type="submit" isLoading={saving}>Save schedule</Button>
           </div>
-          {preview !== null && <p className="phase1-counts">Eligible or registered students: {preview}</p>}
+          <EligibilityPreview
+            loading={eligibilityLoading}
+            error={eligibilityError}
+            eligibility={eligibility}
+            ready={Boolean(form.examination && form.subject)}
+            studentLabel={studentLabel}
+          />
           {conflicts?.conflicts?.length > 0 && (
             <ul className="phase1-conflicts">
               {conflicts.conflicts.map((conflict, index) => (

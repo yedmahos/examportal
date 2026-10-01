@@ -530,6 +530,51 @@
   font-size: var(--text-sm);
 }
 
+.phase1-eligibility {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.phase1-eligibility-group {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  background: var(--color-surface);
+}
+
+.phase1-eligibility-group h4 {
+  margin: 0 0 8px;
+  font-size: var(--text-sm);
+}
+
+.phase1-eligibility-group p,
+.phase1-eligibility-group li {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.phase1-eligibility-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.phase1-eligibility-group small {
+  display: block;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 800px) {
+  .phase1-eligibility {
+    grid-template-columns: 1fr;
+  }
+}
+
 .phase1-conflicts {
   list-style: none;
   display: flex;
