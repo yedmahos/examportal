@@ -1,6 +1,11 @@
 const mongoose = require("mongoose");
 const Announcement = require("../models/Announcement");
 const { logActivity } = require("../services/activityLogger");
+const {
+    escapeRegex,
+    parsePagination,
+    paginationMeta
+} = require("../utils/query");
 
 const createAnnouncement = async (req, res) => {
     try {
@@ -114,8 +119,39 @@ const getAnnouncements = async (req, res) => {
 
 const getAllAnnouncements = async (req, res) => {
     try {
-        const announcements =
-            await Announcement.find()
+        const {
+            search,
+            category,
+            priority,
+            published
+        } = req.query;
+
+        const { page, limit, skip } = parsePagination(req.query);
+        const query = {};
+
+        if (search) {
+            const regex = new RegExp(escapeRegex(search), "i");
+
+            query.$or = [
+                { title: regex },
+                { content: regex }
+            ];
+        }
+
+        if (category && category !== "All") {
+            query.category = String(category).trim().toLowerCase();
+        }
+
+        if (priority && priority !== "All") {
+            query.priority = String(priority).trim().toLowerCase();
+        }
+
+        if (published === "true" || published === "false") {
+            query.published = published === "true";
+        }
+
+        const [announcements, total] = await Promise.all([
+            Announcement.find(query)
                 .populate(
                     "createdBy",
                     "name email role"
@@ -123,11 +159,15 @@ const getAllAnnouncements = async (req, res) => {
                 .sort({
                     publishDate: -1,
                     createdAt: -1
-                });
+                })
+                .skip(skip)
+                .limit(limit),
+            Announcement.countDocuments(query)
+        ]);
 
         res.status(200).json({
-            count: announcements.length,
-            announcements
+            announcements,
+            ...paginationMeta({ page, limit, total })
         });
     } catch (error) {
         console.error(

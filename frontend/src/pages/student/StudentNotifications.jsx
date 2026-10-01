@@ -46,7 +46,12 @@ const StudentNotifications = () => {
   const handleMarkAsRead = async (id) => {
     try {
       await notificationService.markAsRead(id);
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      setNotifications(prev => {
+        const next = prev.map((n) => (
+          String(n.id || n._id) === String(id) ? { ...n, isRead: true } : n
+        ));
+        return unreadOnly ? next.filter((n) => !n.isRead) : next;
+      });
     } catch (e) {
       console.error(e);
     }
@@ -119,7 +124,7 @@ const StudentNotifications = () => {
           <div className="notifications-container">
             {notifications.map((notif) => (
               <NotificationItem
-                key={notif.id}
+                key={notif.id || notif._id}
                 notification={notif}
                 onMarkAsRead={handleMarkAsRead}
                 onOpenAttachment={handleOpenAttachment}

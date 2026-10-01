@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Award, CheckCircle, ShieldCheck, Undo2, Send, Edit2 } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Undo2, Send } from 'lucide-react';
 import { resultService } from '../../services/resultService';
-import { activityService } from '../../services/activityService';
 import PageHeader from '../../components/common/PageHeader';
 import StatusBadge from '../../components/common/StatusBadge';
 import Button from '../../components/common/Button';
@@ -10,6 +9,22 @@ import LoadingState from '../../components/common/LoadingState';
 import ErrorState from '../../components/common/ErrorState';
 import { useToast } from '../../components/common/Toast';
 import './AdminPages.css';
+
+const formatDate = (value) => {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+const display = (value) => {
+  if (value === undefined || value === null || value === '') return 'N/A';
+  return value;
+};
 
 const AdminResultDetail = () => {
   const { id } = useParams();
@@ -23,8 +38,8 @@ const AdminResultDetail = () => {
     try {
       const res = await resultService.getById(id);
       setResult(res.data);
-    } catch (e) {
-      setError(e.message || 'Result record not found');
+    } catch (err) {
+      setError(err.message || 'Result record not found');
     } finally {
       setIsLoading(false);
     }
@@ -35,41 +50,48 @@ const AdminResultDetail = () => {
   }, [id]);
 
   const handleTogglePublish = async () => {
+    const resultId = result?.id || result?._id;
+    if (!resultId) {
+      showToast('Could not identify this result', 'error');
+      return;
+    }
+
     try {
-      if (result.status === 'Published') {
-        const res = await resultService.unpublish(result.id);
-        setResult(res.data);
-        await activityService.log('Unpublished Marksheet', result.examTitle, `Reverted mark transcript to draft for ${result.studentName}`, 'Admin Officer', 'results');
-        showToast('Result reverted to Draft', 'info');
-      } else {
-        const res = await resultService.publish(result.id);
-        setResult(res.data);
-        await activityService.log('Published Marksheet', result.examTitle, `Published verified grade certificate for ${result.studentName}`, 'Admin Officer', 'results');
-        showToast('Result published to student portal', 'success');
-      }
-    } catch (e) {
-      showToast('Failed to change publish state', 'error');
+      const res = result.published
+        ? await resultService.unpublish(resultId)
+        : await resultService.publish(resultId);
+      setResult(res.data);
+      showToast(
+        result.published ? 'Result reverted to Draft' : 'Result published to student portal',
+        result.published ? 'info' : 'success'
+      );
+    } catch (err) {
+      showToast(err.message || 'Failed to change publish state', 'error');
     }
   };
 
   if (isLoading) return <LoadingState message="Loading examination mark record..." />;
   if (error || !result) return <ErrorState message={error} onRetry={fetchResult} />;
 
+  const exam = result.exam || {};
+  const student = result.student || {};
+  const publishLabel = result.published ? 'Published' : 'Draft';
+
   return (
     <div className="admin-result-detail-page animate-fade-in">
       <PageHeader
-        title={`${result.studentName} — ${result.subject}`}
-        subtitle={`${result.studentId} • ${result.examCode}`}
+        title={`${display(student.name)} — ${display(exam.subject)}`}
+        subtitle={`${display(student.studentId)} • ${display(exam.examCode)}`}
         backUrl="/admin/results"
         backText="Back to Results Management"
-        badge={<StatusBadge status={result.status} />}
+        badge={<StatusBadge status={publishLabel} />}
         actions={
           <Button
-            variant={result.status === 'Published' ? 'outline' : 'primary'}
-            icon={result.status === 'Published' ? Undo2 : Send}
+            variant={result.published ? 'outline' : 'primary'}
+            icon={result.published ? Undo2 : Send}
             onClick={handleTogglePublish}
           >
-            {result.status === 'Published' ? 'Unpublish to Draft' : 'Publish to Student Portal'}
+            {result.published ? 'Unpublish to Draft' : 'Publish to Student Portal'}
           </Button>
         }
       />
@@ -80,25 +102,28 @@ const AdminResultDetail = () => {
             <span className="cert-inst-name">DIRECTORATE OF ACADEMIC EVALUATION</span>
             <span className="cert-doc-type">Official Mark Entry Verification Record</span>
           </div>
-          <StatusBadge status={result.passFail} size="md" />
+          <StatusBadge status={result.status || 'N/A'} size="md" />
         </div>
 
         <div className="cert-candidate-band">
           <div className="cert-cand-col">
             <span className="cand-label">Candidate Name</span>
-            <span className="cand-value">{result.studentName}</span>
+            <span className="cand-value">{display(student.name)}</span>
           </div>
           <div className="cert-cand-col">
             <span className="cand-label">Student ID</span>
-            <span className="cand-value">{result.studentId}</span>
+            <span className="cand-value">{display(student.studentId)}</span>
           </div>
           <div className="cert-cand-col">
             <span className="cand-label">Department</span>
-            <span className="cand-value">{result.department}</span>
+            <span className="cand-value">{display(student.department)}</span>
           </div>
           <div className="cert-cand-col">
             <span className="cand-label">Semester / Year</span>
-            <span className="cand-value">{result.semester} • {result.academicYear}</span>
+            <span className="cand-value">
+              {exam.semester ? `Semester ${exam.semester}` : 'N/A'}
+              {exam.academicYear ? ` • ${exam.academicYear}` : ''}
+            </span>
           </div>
         </div>
 
@@ -106,8 +131,8 @@ const AdminResultDetail = () => {
           <div className="cert-score-card">
             <span className="score-k">Marks Secured</span>
             <div className="score-v-row">
-              <span className="score-big text-primary">{result.marks}</span>
-              <span className="score-denom">/ {result.maxMarks}</span>
+              <span className="score-big text-primary">{display(result.marksObtained)}</span>
+              <span className="score-denom">/ {display(result.maximumMarks)}</span>
             </div>
             <span className="score-sub">Total Scale</span>
           </div>
@@ -115,7 +140,11 @@ const AdminResultDetail = () => {
           <div className="cert-score-card">
             <span className="score-k">Percentage</span>
             <div className="score-v-row">
-              <span className="score-big">{result.percentage}%</span>
+              <span className="score-big">
+                {result.percentage !== undefined && result.percentage !== null
+                  ? `${result.percentage}%`
+                  : 'N/A'}
+              </span>
             </div>
             <span className="score-sub">Computed Percentage</span>
           </div>
@@ -123,17 +152,17 @@ const AdminResultDetail = () => {
           <div className="cert-score-card">
             <span className="score-k">Letter Grade</span>
             <div className="score-v-row">
-              <span className="score-big text-success">{result.grade}</span>
+              <span className="score-big text-success">{display(result.grade)}</span>
             </div>
-            <span className="score-sub">GPA Point: {result.gpaPoint.toFixed(2)}</span>
+            <span className="score-sub">Stored grade</span>
           </div>
 
           <div className="cert-score-card">
             <span className="score-k">Result Standing</span>
             <div className="score-v-row">
-              <span className="score-big text-success">{result.passFail}</span>
+              <span className="score-big text-success">{display(result.status)}</span>
             </div>
-            <span className="score-sub">Verified Standing</span>
+            <span className="score-sub">{publishLabel}</span>
           </div>
         </div>
 
@@ -142,23 +171,29 @@ const AdminResultDetail = () => {
           <div className="cert-details-table">
             <div className="cert-row">
               <span className="row-k">Course Paper</span>
-              <span className="row-v">{result.examTitle}</span>
+              <span className="row-v">{display(exam.title)}</span>
             </div>
             <div className="cert-row">
               <span className="row-k">Course Code</span>
-              <span className="row-v">{result.examCode}</span>
+              <span className="row-v">{display(exam.examCode)}</span>
+            </div>
+            <div className="cert-row">
+              <span className="row-k">Subject</span>
+              <span className="row-v">{display(exam.subject)}</span>
             </div>
             <div className="cert-row">
               <span className="row-k">Examination Date</span>
-              <span className="row-v">{result.examDate}</span>
+              <span className="row-v">{formatDate(exam.examDate)}</span>
+            </div>
+            <div className="cert-row">
+              <span className="row-k">Venue / Room</span>
+              <span className="row-v">
+                {display(exam.venue)}{exam.room ? ` • ${exam.room}` : ''}
+              </span>
             </div>
             <div className="cert-row">
               <span className="row-k">Publication Date</span>
-              <span className="row-v">{result.publishedDate || 'Not yet published'}</span>
-            </div>
-            <div className="cert-row">
-              <span className="row-k">Evaluation Remarks</span>
-              <span className="row-v">{result.remarks}</span>
+              <span className="row-v">{result.publishedAt ? formatDate(result.publishedAt) : 'Not yet published'}</span>
             </div>
           </div>
         </div>

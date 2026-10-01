@@ -7,7 +7,8 @@ const {
     getResultById,
     updateResult,
     publishResult,
-    unpublishResult
+    unpublishResult,
+    deleteResult
 } = require("../controllers/resultController");
 
 const {
@@ -59,6 +60,13 @@ router.patch(
     protect,
     authorize("admin"),
     unpublishResult
+);
+
+router.delete(
+    "/:id",
+    protect,
+    authorize("admin"),
+    deleteResult
 );
 
 // Both admin and student with ownership checks

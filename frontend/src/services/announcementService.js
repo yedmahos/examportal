@@ -2,6 +2,15 @@
 
 import { get, post, put, patch, del } from "./api";
 
+const withId = (record) => {
+  if (!record || typeof record !== "object" || Array.isArray(record)) {
+    return record;
+  }
+
+  const id = record.id || record._id;
+  return id ? { ...record, id: String(id) } : record;
+};
+
 export const announcementService = {
   // Get announcements
   async getAll({
@@ -9,25 +18,42 @@ export const announcementService = {
     category = "",
     priority = "",
     published,
+    status = "",
     page = 1,
     limit = 10
   } = {}) {
     const params = new URLSearchParams();
+
+    const CATEGORY_MAP = {
+      Examination: "exam",
+      Academic: "academic",
+      Administrative: "general",
+      Urgent: "important",
+      General: "general",
+      Result: "result",
+    };
 
     if (search) {
       params.append("search", search);
     }
 
     if (category && category !== "All") {
-      params.append("category", category);
+      params.append(
+        "category",
+        CATEGORY_MAP[category] || String(category).toLowerCase()
+      );
     }
 
     if (priority && priority !== "All") {
-      params.append("priority", priority);
+      params.append("priority", String(priority).toLowerCase());
     }
 
     if (published !== undefined) {
       params.append("published", String(published));
+    } else if (status === "Published") {
+      params.append("published", "true");
+    } else if (status === "Draft") {
+      params.append("published", "false");
     }
 
     params.append("page", page);
@@ -52,7 +78,7 @@ export const announcementService = {
           ...a,
           id: a.id || (a._id ? String(a._id) : undefined),
         })),
-        total: data.total || 0,
+        total: typeof data.total === "number" ? data.total : (data.count || 0),
         page: data.page || page,
         limit: data.limit || limit,
         totalPages: data.totalPages || 1
@@ -64,13 +90,19 @@ export const announcementService = {
   // Get announcement
   async getById(id) {
     const response = await get(`/announcements/${id}`);
+    const announcement =
+      response.announcement ||
+      response.data ||
+      response;
 
     return {
       success: true,
-      data:
-        response.announcement ||
-        response.data ||
-        response,
+      data: announcement && typeof announcement === "object"
+        ? {
+            ...announcement,
+            id: announcement.id || (announcement._id ? String(announcement._id) : undefined),
+          }
+        : announcement,
       message: response.message || ""
     };
   },
@@ -113,7 +145,7 @@ export const announcementService = {
       published:
         data.published !== undefined
           ? data.published
-          : false
+          : data.status === "Published"
     };
 
     const response = await post(
@@ -123,10 +155,11 @@ export const announcementService = {
 
     return {
       success: true,
-      data:
+      data: withId(
         response.announcement ||
         response.data ||
-        response,
+        response
+      ),
       message:
         response.message ||
         "Announcement created successfully"
@@ -169,7 +202,13 @@ export const announcementService = {
         "all",
       publishDate: data.publishDate || undefined,
       expiryDate: data.expiryDate || undefined,
-      published: data.published !== undefined ? data.published : undefined,
+      published: data.published !== undefined
+        ? data.published
+        : data.status === "Published"
+          ? true
+          : data.status === "Draft"
+            ? false
+            : undefined,
     };
 
     // Remove undefined keys so the backend whitelist filter works cleanly
@@ -184,10 +223,11 @@ export const announcementService = {
 
     return {
       success: true,
-      data:
+      data: withId(
         response.announcement ||
         response.data ||
-        response,
+        response
+      ),
       message:
         response.message ||
         "Announcement updated successfully"
@@ -221,10 +261,11 @@ export const announcementService = {
 
     return {
       success: true,
-      data:
+      data: withId(
         response.announcement ||
         response.data ||
-        response,
+        response
+      ),
       message:
         response.message ||
         "Announcement published successfully"
@@ -240,10 +281,11 @@ export const announcementService = {
 
     return {
       success: true,
-      data:
+      data: withId(
         response.announcement ||
         response.data ||
-        response,
+        response
+      ),
       message:
         response.message ||
         "Announcement unpublished successfully"

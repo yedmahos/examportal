@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   Calendar,
   Clock,
   MapPin,
-  Award,
+  BookOpen,
   UserCheck,
-  ShieldCheck,
-  CheckCircle,
-  AlertTriangle,
-  Edit2
+  ShieldCheck
 } from 'lucide-react';
 import { examService } from '../../services/examService';
-import { activityService } from '../../services/activityService';
 import PageHeader from '../../components/common/PageHeader';
 import StatusBadge from '../../components/common/StatusBadge';
 import Button from '../../components/common/Button';
@@ -20,6 +16,26 @@ import LoadingState from '../../components/common/LoadingState';
 import ErrorState from '../../components/common/ErrorState';
 import { useToast } from '../../components/common/Toast';
 import './AdminPages.css';
+
+const display = (value) => (
+  value === undefined || value === null || value === '' ? 'N/A' : value
+);
+
+const formatDate = (value) => {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+const formatSemester = (value) => {
+  if (value === undefined || value === null || value === '') return 'N/A';
+  return `Semester ${value}`;
+};
 
 const AdminExamDetail = () => {
   const { id } = useParams();
@@ -45,43 +61,50 @@ const AdminExamDetail = () => {
   }, [id]);
 
   const handleUpdateStatus = async (newStatus) => {
+    const examId = exam.id || exam._id;
+    if (!examId) {
+      showToast('Exam record is missing an ID', 'error');
+      return;
+    }
+
     try {
-      const res = await examService.update(exam.id, { status: newStatus });
+      const res = await examService.update(examId, { status: newStatus });
       setExam(res.data);
-      await activityService.log('Updated Exam Status', exam.title, `Status updated to ${newStatus}`, 'Admin Officer', 'exams');
       showToast(`Exam session marked as ${newStatus}`, 'success');
     } catch (e) {
-      showToast('Failed to update status', 'error');
+      showToast(e.message || 'Failed to update status', 'error');
     }
   };
 
   if (isLoading) return <LoadingState message="Loading exam administration record..." />;
   if (error || !exam) return <ErrorState message={error} onRetry={fetchExam} />;
 
+  const status = String(exam.status || '').toLowerCase();
+
   return (
     <div className="admin-exam-detail-page animate-fade-in">
       <PageHeader
         title={exam.title}
-        subtitle={`${exam.examCode} • ${exam.department}`}
+        subtitle={`${display(exam.examCode)} • ${display(exam.department)}`}
         backUrl="/admin/exams"
         backText="Back to Exams Management"
         badge={<StatusBadge status={exam.status} size="md" />}
         actions={
           <div className="exam-status-action-btns">
-            {exam.status === 'Scheduled' && (
+            {(status === 'scheduled' || status === 'ongoing') && (
               <Button
                 variant="primary"
                 size="md"
-                onClick={() => handleUpdateStatus('Completed')}
+                onClick={() => handleUpdateStatus('completed')}
               >
                 Mark as Completed
               </Button>
             )}
-            {exam.status === 'Completed' && (
+            {status === 'completed' && (
               <Button
                 variant="outline"
                 size="md"
-                onClick={() => handleUpdateStatus('Scheduled')}
+                onClick={() => handleUpdateStatus('scheduled')}
               >
                 Reopen Session
               </Button>
@@ -99,7 +122,7 @@ const AdminExamDetail = () => {
               </div>
               <div className="spec-card-text">
                 <span className="spec-title">Exam Date</span>
-                <span className="spec-value">{exam.date}</span>
+                <span className="spec-value">{formatDate(exam.examDate)}</span>
               </div>
             </div>
 
@@ -109,8 +132,8 @@ const AdminExamDetail = () => {
               </div>
               <div className="spec-card-text">
                 <span className="spec-title">Scheduled Hours</span>
-                <span className="spec-value">{exam.startTime} - {exam.endTime}</span>
-                <span className="spec-sub">{exam.duration}</span>
+                <span className="spec-value">{display(exam.startTime)} - {display(exam.endTime)}</span>
+                <span className="spec-sub">{display(exam.duration)}</span>
               </div>
             </div>
 
@@ -120,19 +143,19 @@ const AdminExamDetail = () => {
               </div>
               <div className="spec-card-text">
                 <span className="spec-title">Venue & Seating</span>
-                <span className="spec-value">{exam.venue}</span>
-                <span className="spec-sub">Room: {exam.room}</span>
+                <span className="spec-value">{display(exam.venue)}</span>
+                <span className="spec-sub">Room: {display(exam.room)}</span>
               </div>
             </div>
 
             <div className="spec-card">
               <div className="spec-card-icon text-info bg-info-light">
-                <Award size={18} />
+                <BookOpen size={18} />
               </div>
               <div className="spec-card-text">
-                <span className="spec-title">Evaluation Weight</span>
-                <span className="spec-value">{exam.totalMarks} Total Marks</span>
-                <span className="spec-sub">Passing: {exam.passingMarks}</span>
+                <span className="spec-title">Subject</span>
+                <span className="spec-value">{display(exam.subject)}</span>
+                <span className="spec-sub">{display(exam.examCode)}</span>
               </div>
             </div>
           </div>
@@ -144,7 +167,7 @@ const AdminExamDetail = () => {
             </div>
             <div className="instructions-body">
               <div className="instructions-content-pre">
-                {exam.instructions}
+                {display(exam.instructions)}
               </div>
             </div>
           </div>
@@ -156,23 +179,19 @@ const AdminExamDetail = () => {
             <div className="detail-meta-list">
               <div className="meta-pair">
                 <span className="meta-k">Department</span>
-                <span className="meta-v">{exam.department}</span>
+                <span className="meta-v">{display(exam.department)}</span>
               </div>
               <div className="meta-pair">
                 <span className="meta-k">Degree Program</span>
-                <span className="meta-v">{exam.program}</span>
+                <span className="meta-v">{display(exam.program)}</span>
               </div>
               <div className="meta-pair">
                 <span className="meta-k">Semester</span>
-                <span className="meta-v">{exam.semester}</span>
+                <span className="meta-v">{formatSemester(exam.semester)}</span>
               </div>
               <div className="meta-pair">
                 <span className="meta-k">Academic Year</span>
-                <span className="meta-v">{exam.academicYear}</span>
-              </div>
-              <div className="meta-pair">
-                <span className="meta-k">Credits</span>
-                <span className="meta-v">{exam.credits} Credits</span>
+                <span className="meta-v">{display(exam.academicYear)}</span>
               </div>
             </div>
           </div>
@@ -182,8 +201,8 @@ const AdminExamDetail = () => {
             <div className="invigilator-box">
               <UserCheck size={20} className="text-primary" />
               <div className="invigilator-text">
-                <span className="invigilator-name">{exam.invigilator}</span>
-                <span className="invigilator-role">Head of Examination Hall</span>
+                <span className="invigilator-name">N/A</span>
+                <span className="invigilator-role">No invigilator is stored for this exam</span>
               </div>
             </div>
           </div>

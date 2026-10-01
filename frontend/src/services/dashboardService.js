@@ -2,6 +2,16 @@
 
 import { get } from "./api";
 
+const withExamId = (exam) => {
+  if (!exam || typeof exam !== "object") {
+    return exam;
+  }
+
+  const id = exam.id || exam._id;
+
+  return id ? { ...exam, id: String(id) } : exam;
+};
+
 const normalizeStudentDashboard = (response) => {
   const payload = response?.data ?? response;
 
@@ -26,17 +36,14 @@ const normalizeStudentDashboard = (response) => {
           ? payload.student.gpa
           : "N/A",
 
-      maxGpa:
-        typeof payload?.student?.gpa === "number"
-          ? 4
-          : "N/A",
+      maxGpa: "N/A",
 
       gpaDelta: "",
 
       activeExamsCount:
         payload?.upcomingExams?.length ?? 0,
 
-      totalEnrolledCourses: 0
+      totalEnrolledCourses: "N/A"
     },
 
     nextExam:
@@ -44,19 +51,19 @@ const normalizeStudentDashboard = (response) => {
 
     upcomingExams:
       Array.isArray(payload?.upcomingExams)
-        ? payload.upcomingExams
+        ? payload.upcomingExams.map(withExamId)
         : [],
 
     recentResults:
       Array.isArray(payload?.recentResults)
-        ? payload.recentResults
+        ? payload.recentResults.map(withExamId)
         : [],
 
     performanceHistory: [],
 
     recentAnnouncements:
       Array.isArray(payload?.announcements)
-        ? payload.announcements
+        ? payload.announcements.map(withExamId)
         : []
   };
 };
@@ -98,17 +105,24 @@ const normalizeAdminDashboard = (response) => {
       totalAnnouncements:
         statistics.totalAnnouncements ?? 0,
 
-      activeAnnouncementsDelta: ""
+      activeAnnouncementsDelta: "",
+
+      totalSubjects: typeof statistics.totalSubjects === "number" ? statistics.totalSubjects : undefined,
+      totalRooms: typeof statistics.totalRooms === "number" ? statistics.totalRooms : undefined,
+      subjectsScheduled: typeof statistics.subjectsScheduled === "number" ? statistics.subjectsScheduled : undefined,
+      conflicts: typeof statistics.conflicts === "number" ? statistics.conflicts : undefined,
+      roomsAllocated: typeof statistics.roomsAllocated === "number" ? statistics.roomsAllocated : undefined,
+      currentExamination: statistics.currentExamination || null,
     },
 
     recentExams:
       Array.isArray(payload?.recentExams)
-        ? payload.recentExams
+        ? payload.recentExams.map(withExamId)
         : [],
 
     recentResults:
       Array.isArray(payload?.recentResults)
-        ? payload.recentResults
+        ? payload.recentResults.map(withExamId)
         : [],
 
     recentAnnouncements:
@@ -138,7 +152,9 @@ const normalizeAdminDashboard = (response) => {
           }))
         : [],
 
-    upcomingSchedule: []
+    upcomingSchedule: Array.isArray(payload?.upcomingExams)
+      ? payload.upcomingExams.map(withExamId)
+      : []
   };
 };
 

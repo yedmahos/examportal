@@ -30,19 +30,20 @@ const StudentResults = () => {
     try {
       const res = await resultService.getMyResults();
       let items = res.data.items;
-      
-      // Simple client-side filtering since backend doesn't support query params for /my
+
       if (search) {
         const query = search.toLowerCase();
-        items = items.filter(item => 
+        items = items.filter((item) =>
           item.exam?.subject?.toLowerCase().includes(query) ||
           item.exam?.title?.toLowerCase().includes(query) ||
-          item.examCode?.toLowerCase().includes(query)
+          item.exam?.examCode?.toLowerCase().includes(query)
         );
       }
-      
+
       if (semesterFilter !== 'All') {
-        items = items.filter(item => item.exam?.semester === semesterFilter || item.semester === semesterFilter);
+        const semesterMatch = String(semesterFilter).match(/\d+/);
+        const semesterNumber = semesterMatch ? Number(semesterMatch[0]) : null;
+        items = items.filter((item) => Number(item.exam?.semester) === semesterNumber);
       }
       setResults(items);
       setTotal(items.length);
@@ -78,7 +79,7 @@ const StudentResults = () => {
   }, [user?.id]);
 
   const handleDownloadTranscript = () => {
-    showToast('Official Grade Transcript PDF generated for download.', 'success');
+    showToast('PDF export is not available.', 'info');
   };
 
   const columns = [
@@ -103,9 +104,9 @@ const StudentResults = () => {
       title: 'Semester',
       key: 'semester',
       render: (_, row) => {
-        const sem = row.exam?.semester || row.semester;
-        if (!sem) return 'N/A';
-        return typeof sem === 'number' ? `${sem}th Semester` : sem;
+        const sem = row.exam?.semester;
+        if (sem === undefined || sem === null || sem === '') return 'N/A';
+        return `Semester ${sem}`;
       },
     },
     {

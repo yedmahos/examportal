@@ -1,21 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
-  User,
   GraduationCap,
-  Calendar,
   Award,
-  Phone,
-  Mail,
-  Edit2,
   UserX,
-  UserCheck,
-  CheckCircle,
-  ExternalLink
+  UserCheck
 } from 'lucide-react';
 import { studentService } from '../../services/studentService';
 import { resultService } from '../../services/resultService';
-import { examService } from '../../services/examService';
 import PageHeader from '../../components/common/PageHeader';
 import Avatar from '../../components/common/Avatar';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -43,8 +35,12 @@ const AdminStudentDetail = () => {
       const sRes = await studentService.getById(id);
       setStudent(sRes.data);
 
-      const rRes = await resultService.getAll({ studentId: sRes.data.studentId });
-      setStudentResults(rRes.data.items);
+      const recordId = sRes.data?.id || sRes.data?._id;
+      const rRes = await resultService.getAll({
+        student: recordId,
+        limit: 100,
+      });
+      setStudentResults(rRes.data.items || []);
     } catch (err) {
       setError(err.message || 'Student record could not be loaded');
     } finally {
@@ -57,14 +53,22 @@ const AdminStudentDetail = () => {
   }, [id]);
 
   const handleToggleStatus = async () => {
+    const recordId = student.id || student._id;
+    const nextStatus = student.status === 'active' ? 'inactive' : 'active';
+
+    if (!recordId) {
+      showToast('Student record is missing an ID', 'error');
+      return;
+    }
+
     setIsToggling(true);
     try {
-      const res = await studentService.toggleStatus(student.id);
+      const res = await studentService.toggleStatus(recordId, nextStatus);
       setStudent(res.data);
       setIsConfirmOpen(false);
-      showToast(`Student status updated to ${res.data.status}`, 'success');
+      showToast(`Student status updated to ${res.data?.status || nextStatus}`, 'success');
     } catch (e) {
-      showToast('Failed to update status', 'error');
+      showToast(e.message || 'Failed to update status', 'error');
     } finally {
       setIsToggling(false);
     }
@@ -72,6 +76,11 @@ const AdminStudentDetail = () => {
 
   if (isLoading) return <LoadingState message="Loading candidate dossier..." />;
   if (error || !student) return <ErrorState message={error} onRetry={fetchStudentData} />;
+
+  const isActive = student.status === 'active';
+  const gpaLabel = typeof student.gpa === 'number' ? student.gpa.toFixed(2) : 'N/A';
+  const creditsLabel = typeof student.creditsCompleted === 'number' ? student.creditsCompleted : 'N/A';
+  const semesterLabel = student.semester ? `Semester ${student.semester}` : 'N/A';
 
   return (
     <div className="admin-student-detail-page animate-fade-in">
@@ -83,11 +92,11 @@ const AdminStudentDetail = () => {
         badge={<StatusBadge status={student.status} size="md" />}
         actions={
           <Button
-            variant={student.status === 'Active' ? 'outline' : 'primary'}
-            icon={student.status === 'Active' ? UserX : UserCheck}
+            variant={isActive ? 'outline' : 'primary'}
+            icon={isActive ? UserX : UserCheck}
             onClick={() => setIsConfirmOpen(true)}
           >
-            {student.status === 'Active' ? 'Deactivate Student' : 'Activate Student'}
+            {isActive ? 'Deactivate Student' : 'Activate Student'}
           </Button>
         }
       />
@@ -96,24 +105,24 @@ const AdminStudentDetail = () => {
         {/* Left Column: Summary Card */}
         <div className="profile-hero-card">
           <div className="profile-hero-top">
-            <Avatar src={student.avatar} name={student.name} size="xl" />
+            <Avatar src={student.profileImage || student.avatar} name={student.name} size="xl" />
             <div className="profile-name-stack">
               <h2 className="profile-full-name">{student.name}</h2>
               <span className="profile-student-id">{student.studentId}</span>
               <div className="profile-status-row">
                 <StatusBadge status={student.status} />
-                <span className="profile-program-tag">{student.semester}</span>
+                <span className="profile-program-tag">{semesterLabel}</span>
               </div>
             </div>
           </div>
 
           <div className="profile-quick-stats">
             <div className="p-stat-box">
-              <span className="p-stat-num text-primary">{student.gpa ? student.gpa.toFixed(2) : '3.75'}</span>
+              <span className="p-stat-num text-primary">{gpaLabel}</span>
               <span className="p-stat-lbl">Cumulative GPA</span>
             </div>
             <div className="p-stat-box">
-              <span className="p-stat-num">{student.creditsCompleted || 120}</span>
+              <span className="p-stat-num">{creditsLabel}</span>
               <span className="p-stat-lbl">Credits Done</span>
             </div>
             <div className="p-stat-box">
@@ -142,7 +151,7 @@ const AdminStudentDetail = () => {
               </div>
               <div className="p-field-item">
                 <span className="p-field-label">Current Semester</span>
-                <span className="p-field-value">{student.semester}</span>
+                <span className="p-field-value">{semesterLabel}</span>
               </div>
               <div className="p-field-item">
                 <span className="p-field-label">Academic Session</span>
@@ -177,19 +186,22 @@ const AdminStudentDetail = () => {
                       <th>Subject</th>
                       <th>Marks</th>
                       <th>Grade</th>
-                      <th>Standing</th>
-                      <th>Status</th>
+                      <th>Result</th>
+                      <th>Publication</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {studentResults.map(r => (
-                      <tr key={r.id}>
-                        <td className="table-id-cell">{r.examCode}</td>
-                        <td style={{ fontWeight: 600 }}>{r.subject}</td>
-                        <td>{r.marks} / {r.maxMarks} ({r.percentage}%)</td>
-                        <td><span className="grade-badge">{r.grade}</span></td>
-                        <td><StatusBadge status={r.passFail} size="sm" /></td>
-                        <td><StatusBadge status={r.status} size="sm" /></td>
+                    {studentResults.map((r) => (
+                      <tr key={r.id || r._id}>
+                        <td className="table-id-cell">{r.exam?.examCode || 'N/A'}</td>
+                        <td style={{ fontWeight: 600 }}>{r.exam?.subject || r.exam?.title || 'N/A'}</td>
+                        <td>
+                          {r.marksObtained ?? 'N/A'} / {r.maximumMarks ?? 'N/A'}
+                          {' '}({r.percentage ?? 'N/A'}%)
+                        </td>
+                        <td><span className="grade-badge">{r.grade || 'N/A'}</span></td>
+                        <td><StatusBadge status={r.status || 'N/A'} size="sm" /></td>
+                        <td><StatusBadge status={r.published ? 'Published' : 'Draft'} size="sm" /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -202,10 +214,10 @@ const AdminStudentDetail = () => {
 
       <ConfirmDialog
         isOpen={isConfirmOpen}
-        title={student.status === 'Active' ? 'Deactivate Student?' : 'Activate Student?'}
+        title={isActive ? 'Deactivate Student?' : 'Activate Student?'}
         message={`Are you sure you want to change the status of ${student.name}?`}
-        confirmText={student.status === 'Active' ? 'Deactivate' : 'Activate'}
-        confirmVariant={student.status === 'Active' ? 'danger' : 'primary'}
+        confirmText={isActive ? 'Deactivate' : 'Activate'}
+        confirmVariant={isActive ? 'danger' : 'primary'}
         isLoading={isToggling}
         onConfirm={handleToggleStatus}
         onCancel={() => setIsConfirmOpen(false)}

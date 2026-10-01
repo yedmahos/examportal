@@ -3,6 +3,15 @@ const Result = require("../models/Result");
 const User = require("../models/User");
 const Exam = require("../models/Exam");
 const { logActivity } = require("../services/activityLogger");
+const {
+    parseSemester,
+    escapeRegex,
+    parsePagination,
+    paginationMeta
+} = require("../utils/query");
+
+const EXAM_RESULT_FIELDS =
+    "title subject examCode examDate venue room semester academicYear";
 
 const calculateGrade = (percentage) => {
     if (percentage >= 90) return "A+";
@@ -126,7 +135,7 @@ const createResult = async (req, res) => {
             )
             .populate(
                 "exam",
-                "title subject examDate"
+                EXAM_RESULT_FIELDS
             );
 
         res.status(201).json({
@@ -142,26 +151,169 @@ const createResult = async (req, res) => {
     }
 };
 
+const emptyResultPage = (res, page, limit) => {
+    return res.status(200).json({
+        results: [],
+        ...paginationMeta({
+            page,
+            limit,
+            total: 0
+        })
+    });
+};
+
 const getAllResults = async (req, res) => {
     try {
-        const results = await Result.find()
-            .populate(
-                "student",
-                "name email studentId department"
-            )
-            .populate(
-                "exam",
-                "title subject examDate"
-            )
-            .populate(
-                "createdBy",
-                "name email"
-            )
-            .sort({ createdAt: -1 });
+        const {
+            search,
+            department,
+            semester,
+            status,
+            studentId,
+            student
+        } = req.query;
+
+        const { page, limit, skip } = parsePagination(req.query);
+        const query = {};
+
+        if (student && mongoose.Types.ObjectId.isValid(student)) {
+            query.student = student;
+        } else if (studentId) {
+            const matchedStudent = await User.findOne({
+                studentId: String(studentId).trim(),
+                role: "student"
+            }).select("_id");
+
+            if (!matchedStudent) {
+                return emptyResultPage(res, page, limit);
+            }
+
+            query.student = matchedStudent._id;
+        }
+
+        if (department && department !== "All") {
+            const departmentStudents = await User.find({
+                role: "student",
+                department
+            }).select("_id");
+
+            const departmentIds = departmentStudents.map(
+                (item) => item._id
+            );
+
+            if (query.student) {
+                const selectedId = String(query.student);
+                const allowed = departmentIds.some(
+                    (item) => String(item) === selectedId
+                );
+
+                if (!allowed) {
+                    return emptyResultPage(res, page, limit);
+                }
+            } else {
+                query.student = { $in: departmentIds };
+            }
+        }
+
+        if (semester && semester !== "All") {
+            const semesterNumber = parseSemester(semester);
+
+            if (semesterNumber) {
+                const semesterExams = await Exam.find({
+                    semester: semesterNumber
+                }).select("_id");
+
+                query.exam = {
+                    $in: semesterExams.map((item) => item._id)
+                };
+            }
+        }
+
+        if (status && status !== "All") {
+            const normalizedStatus = String(status)
+                .trim()
+                .toLowerCase();
+
+            if (normalizedStatus === "published") {
+                query.published = true;
+            } else if (
+                normalizedStatus === "draft" ||
+                normalizedStatus === "unpublished"
+            ) {
+                query.published = false;
+            } else if (
+                normalizedStatus === "passed" ||
+                normalizedStatus === "failed"
+            ) {
+                query.status = normalizedStatus;
+            } else {
+                return emptyResultPage(res, page, limit);
+            }
+        }
+
+        if (search) {
+            const regex = new RegExp(escapeRegex(search), "i");
+
+            const [matchedStudents, matchedExams] = await Promise.all([
+                User.find({
+                    role: "student",
+                    $or: [
+                        { name: regex },
+                        { studentId: regex },
+                        { email: regex }
+                    ]
+                }).select("_id"),
+                Exam.find({
+                    $or: [
+                        { title: regex },
+                        { subject: regex },
+                        { examCode: regex }
+                    ]
+                }).select("_id")
+            ]);
+
+            query.$and = [
+                ...(query.$and || []),
+                {
+                    $or: [
+                        {
+                            student: {
+                                $in: matchedStudents.map((item) => item._id)
+                            }
+                        },
+                        {
+                            exam: {
+                                $in: matchedExams.map((item) => item._id)
+                            }
+                        }
+                    ]
+                }
+            ];
+        }
+
+        const [results, total] = await Promise.all([
+            Result.find(query)
+                .populate(
+                    "student",
+                    "name email studentId department"
+                )
+                .populate(
+                    "exam",
+                    EXAM_RESULT_FIELDS
+                )
+                .populate(
+                    "createdBy",
+                    "name email"
+                )
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit),
+            Result.countDocuments(query)
+        ]);
 
         res.status(200).json({
-            count: results.length,
-            results
+            results,
+            ...paginationMeta({ page, limit, total })
         });
     } catch (error) {
         console.error("Get results error:", error.message);
@@ -180,7 +332,7 @@ const getMyResults = async (req, res) => {
         })
             .populate(
                 "exam",
-                "title subject examDate venue examCode semester"
+                EXAM_RESULT_FIELDS
             )
             .sort({ createdAt: -1 });
 
@@ -217,7 +369,7 @@ const getResultById = async (req, res) => {
             )
             .populate(
                 "exam",
-                "title subject examDate venue examCode semester"
+                EXAM_RESULT_FIELDS
             )
             .populate(
                 "createdBy",
@@ -343,7 +495,7 @@ const updateResult = async (req, res) => {
             )
             .populate(
                 "exam",
-                "title subject examDate"
+                EXAM_RESULT_FIELDS
             )
             .populate(
                 "createdBy",
@@ -392,7 +544,7 @@ const publishResult = async (req, res) => {
             )
             .populate(
                 "exam",
-                "title subject examDate"
+                EXAM_RESULT_FIELDS
             );
 
         if (!result) {
@@ -452,7 +604,7 @@ const unpublishResult = async (req, res) => {
             )
             .populate(
                 "exam",
-                "title subject examDate"
+                EXAM_RESULT_FIELDS
             );
 
         if (!result) {
@@ -486,6 +638,48 @@ const unpublishResult = async (req, res) => {
     }
 };
 
+const deleteResult = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                message: "Invalid result ID"
+            });
+        }
+
+        const result = await Result.findByIdAndDelete(id);
+
+        if (!result) {
+            return res.status(404).json({
+                message: "Result not found"
+            });
+        }
+
+        await logActivity({
+            user: req.user.userId,
+            action: "DELETE",
+            entity: "Result",
+            entityId: result._id,
+            description: "Deleted result",
+            ipAddress: req.ip
+        });
+
+        res.status(200).json({
+            message: "Result deleted successfully"
+        });
+    } catch (error) {
+        console.error(
+            "Delete result error:",
+            error.message
+        );
+
+        res.status(500).json({
+            message: "Server error while deleting result"
+        });
+    }
+};
+
 module.exports = {
     createResult,
     getAllResults,
@@ -493,5 +687,6 @@ module.exports = {
     getResultById,
     updateResult,
     publishResult,
-    unpublishResult
+    unpublishResult,
+    deleteResult
 };

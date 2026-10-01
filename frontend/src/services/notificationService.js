@@ -1,6 +1,6 @@
 // Notification service
 
-import { get, patch } from "./api";
+import { get, patch, del } from "./api";
 
 export const notificationService = {
   // Get notifications
@@ -26,13 +26,42 @@ export const notificationService = {
       response.data ||
       [];
 
-    const items = Array.isArray(notifications)
-      ? notifications
-      : [];
+    let items = (Array.isArray(notifications) ? notifications : []).map(
+      (notification) => ({
+        ...notification,
+        id: notification.id || notification._id,
+      })
+    );
 
-    const unreadCount = items.filter(
-      (notification) => !notification.isRead
-    ).length;
+    const typeMap = {
+      Exams: "exam",
+      Results: "result",
+      Announcements: "announcement",
+      exam: "exam",
+      result: "result",
+      announcement: "announcement",
+    };
+
+    const requestedType = typeMap[type];
+
+    if (requestedType) {
+      items = items.filter(
+        (notification) => notification.type === requestedType
+      );
+    }
+
+    if (isRead !== undefined) {
+      const readFlag = isRead === true || isRead === "true";
+      items = items.filter(
+        (notification) => Boolean(notification.isRead) === readFlag
+      );
+    }
+
+    const unreadCount = typeof response.unreadCount === "number" &&
+      !requestedType &&
+      isRead === undefined
+      ? response.unreadCount
+      : items.filter((notification) => !notification.isRead).length;
 
     return {
       success: true,
@@ -81,8 +110,12 @@ export const notificationService = {
 
   // Delete notification
   async delete(id) {
-    throw new Error(
-      "Notification deletion is not available in the current backend API."
-    );
+    const response = await del(`/notifications/${id}`);
+
+    return {
+      success: true,
+      data: response.notification || response.data || null,
+      message: response.message || "Notification deleted successfully"
+    };
   }
 };

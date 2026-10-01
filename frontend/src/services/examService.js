@@ -2,6 +2,46 @@
 
 import { get, post, put, del } from "./api";
 
+const toApiExamStatus = (value) => {
+  if (!value) {
+    return value;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+
+  if (
+    normalized === "in progress" ||
+    normalized === "in-progress" ||
+    normalized === "inprogress"
+  ) {
+    return "ongoing";
+  }
+
+  return normalized;
+};
+
+const withId = (exam) => {
+  if (!exam || typeof exam !== "object") {
+    return exam;
+  }
+
+  const id = exam.id || exam._id;
+
+  return id ? { ...exam, id: String(id) } : exam;
+};
+
+const totalFrom = (data, fallback = 0) => {
+  if (typeof data?.total === "number") {
+    return data.total;
+  }
+
+  if (typeof data?.count === "number") {
+    return data.count;
+  }
+
+  return fallback;
+};
+
 export const examService = {
   // Get exams
   async getAll({
@@ -22,7 +62,7 @@ export const examService = {
       params.append("semester", semester);
     }
     if (status && status !== "All") {
-      params.append("status", status.toLowerCase());
+      params.append("status", toApiExamStatus(status));
     }
 
     params.append("page", page);
@@ -33,16 +73,13 @@ export const examService = {
     const data = response.data || response;
 
     const rawItems = data.exams || data.items || [];
-    const normalizedItems = rawItems.map((exam) => ({
-      ...exam,
-      id: exam._id || exam.id,
-    }));
+    const normalizedItems = rawItems.map(withId);
 
     return {
       success: true,
       data: {
         items: normalizedItems,
-        total: data.count || data.total || 0,
+        total: totalFrom(data, normalizedItems.length),
         page: data.page || page,
         limit: data.limit || limit,
         totalPages: data.totalPages || 1
@@ -57,7 +94,7 @@ export const examService = {
 
     return {
       success: true,
-      data: response.exam || response.data || response,
+      data: withId(response.exam || response.data || response),
       message: response.message || ""
     };
   },
@@ -80,7 +117,7 @@ export const examService = {
       duration: data.duration,
       instructions: data.instructions,
       status: data.status
-        ? data.status.toLowerCase()
+        ? toApiExamStatus(data.status)
         : "scheduled"
     };
 
@@ -88,7 +125,7 @@ export const examService = {
 
     return {
       success: true,
-      data: response.exam || response.data || response,
+      data: withId(response.exam || response.data || response),
       message: response.message || "Exam successfully scheduled"
     };
   },
@@ -105,19 +142,39 @@ export const examService = {
     }
 
     if (data.status) {
-      payload.status = data.status.toLowerCase();
+      payload.status = toApiExamStatus(data.status);
     }
+
+    delete payload.totalMarks;
+    delete payload.passingMarks;
+    delete payload.credits;
+    delete payload.invigilator;
+    delete payload.id;
+    delete payload._id;
 
     const response = await put(`/exams/${id}`, payload);
 
     return {
       success: true,
-      data: response.exam || response.data || response,
+      data: withId(response.exam || response.data || response),
       message: response.message || "Exam updated successfully"
     };
   },
 
-  // Delete exam
+  // Delete exam (backend archives the document)
+  async createSetup(data) {
+    const response = await post("/exams", {
+      examinationSetup: true,
+      ...data,
+    });
+
+    return {
+      success: true,
+      data: withId(response.exam || response.data || response),
+      message: response.message || "Examination created"
+    };
+  },
+
   async delete(id) {
     const response = await del(`/exams/${id}`);
 
@@ -125,17 +182,6 @@ export const examService = {
       success: true,
       data: response.exam || response.data || null,
       message: response.message || "Exam removed successfully"
-    };
-  },
-
-  // Archive exam
-  async archive(id) {
-    const response = await put(`/exams/${id}/archive`, {});
-
-    return {
-      success: true,
-      data: response.exam || response.data || response,
-      message: response.message || "Exam archived successfully"
     };
   }
 };

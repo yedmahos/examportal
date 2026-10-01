@@ -127,7 +127,29 @@ const AdminDashboard = () => {
           deltaType="neutral"
           to="/admin/announcements"
         />
+
+        {typeof stats.totalSubjects === "number" && (
+          <StatCard icon={FileText} iconColor="#6C5DD3" iconBg="#EFEBFC" title="Subjects" value={stats.totalSubjects} caption="Active subject records" to="/admin/subjects" />
+        )}
+        {typeof stats.totalRooms === "number" && (
+          <StatCard icon={Calendar} iconColor="#3B82F6" iconBg="#DBEAFE" title="Rooms" value={stats.totalRooms} caption="Active rooms" to="/admin/rooms" />
+        )}
+        {typeof stats.subjectsScheduled === "number" && (
+          <StatCard icon={CheckCircle2} iconColor="#22C55E" iconBg="#DCFCE7" title="Subjects Scheduled" value={stats.subjectsScheduled} caption="Distinct scheduled subjects" to="/admin/schedules" />
+        )}
+        {typeof stats.conflicts === "number" && (
+          <StatCard icon={Activity} iconColor="#F59E0B" iconBg="#FEF3C7" title="Conflicts" value={stats.conflicts} caption="Schedules with warnings" to="/admin/schedules" />
+        )}
+        {typeof stats.roomsAllocated === "number" && (
+          <StatCard icon={Calendar} iconColor="#6C5DD3" iconBg="#EFEBFC" title="Rooms Allocated" value={stats.roomsAllocated} caption="Scheduled papers with a room" to="/admin/rooms" />
+        )}
       </div>
+      {stats.currentExamination && (
+        <div className="admin-panel-card phase1-current-exam">
+          <h3 className="admin-panel-title">Current examination</h3>
+          <p>{stats.currentExamination.title}</p>
+        </div>
+      )}
 
       {/* Main 70/30 Content Split */}
       <div className="dashboard-main-split">
@@ -198,7 +220,8 @@ const AdminDashboard = () => {
           <ScheduleRightRail
             upcomingExams={upcomingSchedule}
             title="Upcoming Exam Sessions"
-            subtitle="Invigilation venues & timings"
+            subtitle="Scheduled venues and timings"
+            detailBasePath="/admin/exams"
           />
 
           {/* Quick Access Admin Tools */}

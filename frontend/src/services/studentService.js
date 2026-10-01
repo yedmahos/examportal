@@ -2,6 +2,15 @@
 
 import { get, post, put, patch } from "./api";
 
+const withId = (student) => {
+  if (!student || typeof student !== "object" || Array.isArray(student)) {
+    return student;
+  }
+
+  const id = student.id || student._id;
+  return id ? { ...student, id: String(id) } : student;
+};
+
 export const studentService = {
   // Get students
   async getAll({
@@ -25,7 +34,7 @@ export const studentService = {
     }
 
     if (status && status !== "All") {
-      params.append("status", status);
+      params.append("status", String(status).toLowerCase());
     }
 
     params.append("page", page);
@@ -36,15 +45,15 @@ export const studentService = {
     const data = response.data || response;
 
     const rawItems = data.items || data.students || [];
+    const total = typeof data.total === "number"
+      ? data.total
+      : rawItems.length;
 
     return {
       success: true,
       data: {
-        items: rawItems.map((student) => ({
-          ...student,
-          id: student._id || student.id
-        })),
-        total: data.total || rawItems.length,
+        items: rawItems.map(withId),
+        total,
         page: data.page || page,
         limit: data.limit || limit,
         totalPages: data.totalPages || 1
@@ -82,7 +91,7 @@ export const studentService = {
 
     return {
       success: true,
-      data: response.student || response.data || response,
+      data: withId(response.student || response.data || response),
       message:
         response.message ||
         "Student record updated successfully"
@@ -95,7 +104,7 @@ export const studentService = {
 
     return {
       success: true,
-      data: response.student || response.data || response,
+      data: withId(response.student || response.data || response),
       message:
         response.message ||
         "Student status updated successfully"

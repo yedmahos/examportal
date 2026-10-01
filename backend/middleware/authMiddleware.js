@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const { roleSatisfies } = require("../utils/roles");
 
-const protect = (req, res, next) => {
+const protect = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
 
@@ -17,7 +19,19 @@ const protect = (req, res, next) => {
             process.env.JWT_SECRET
         );
 
-        req.user = decoded;
+        const user = await User.findById(decoded.userId)
+            .select("role status");
+
+        if (!user || user.status !== "active") {
+            return res.status(401).json({
+                message: "Account is inactive"
+            });
+        }
+
+        req.user = {
+            userId: user._id.toString(),
+            role: user.role
+        };
 
         next();
     } catch (error) {
@@ -31,7 +45,7 @@ const protect = (req, res, next) => {
 
 const authorize = (...roles) => {
     return (req, res, next) => {
-        if (!req.user || !roles.includes(req.user.role)) {
+        if (!req.user || !roleSatisfies(req.user.role, roles)) {
             return res.status(403).json({
                 message: "Access denied"
             });

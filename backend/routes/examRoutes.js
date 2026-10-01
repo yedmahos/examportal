@@ -25,7 +25,7 @@ router.get("/:id", protect, getExamById);
 router.post(
     "/",
     protect,
-    authorize("admin"),
+    authorize("admin", "examination_cell"),
     createExam
 );
 
@@ -33,7 +33,7 @@ router.post(
 router.put(
     "/:id",
     protect,
-    authorize("admin"),
+    authorize("admin", "examination_cell"),
     updateExam
 );
 
@@ -41,7 +41,7 @@ router.put(
 router.delete(
     "/:id",
     protect,
-    authorize("admin"),
+    authorize("admin", "examination_cell"),
     deleteExam
 );
 

@@ -77,7 +77,9 @@ const NotificationPanel = ({
   const handleMarkAsRead = async (id) => {
     try {
       await notificationService.markAsRead(id);
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      setNotifications(prev => prev.map(n => (
+        String(n.id || n._id) === String(id) ? { ...n, isRead: true } : n
+      )));
     } catch (e) {
       console.error(e);
     }
@@ -148,7 +150,7 @@ const NotificationPanel = ({
         ) : (
           notifications.map(item => (
             <NotificationItem
-              key={item.id}
+              key={item.id || item._id}
               notification={item}
               onMarkAsRead={handleMarkAsRead}
               onOpenAttachment={handleOpenAttachment}

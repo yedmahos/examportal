@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Calendar, Search, MapPin, Clock, Award, ExternalLink, Filter } from 'lucide-react';
 import { examService } from '../../services/examService';
+import { scheduleWorkflow } from '../../services/resourceService';
 import PageHeader from '../../components/common/PageHeader';
 import SearchBar from '../../components/common/SearchBar';
 import Select from '../../components/common/Select';
@@ -16,6 +17,9 @@ const StudentExams = () => {
   const [searchParams] = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
 
+  const [view, setView] = useState('schedule');
+  const [schedules, setSchedules] = useState([]);
+  const [scheduleError, setScheduleError] = useState('');
   const [exams, setExams] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState(initialQuery);
@@ -34,9 +38,15 @@ const StudentExams = () => {
   const fetchExams = async () => {
     setIsLoading(true);
     try {
+      const statusQuery = activeTab === 'All'
+        ? ''
+        : activeTab === 'scheduled'
+          ? 'upcoming'
+          : activeTab.toLowerCase();
+
       const res = await examService.getAll({
         search,
-        status: activeTab === 'All' ? '' : activeTab.toLowerCase(),
+        status: statusQuery,
         semester: semesterFilter === 'All' ? '' : semesterFilter,
         page,
         limit: 8,
@@ -51,16 +61,100 @@ const StudentExams = () => {
     }
   };
 
+  const fetchSchedules = async () => {
+    setIsLoading(true);
+    setScheduleError('');
+    try {
+      const items = await scheduleWorkflow.mine();
+      setSchedules(items);
+    } catch (err) {
+      setScheduleError(err.message || 'Failed to load your schedule');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchExams();
-  }, [search, activeTab, semesterFilter, page]);
+    if (view === 'notices') fetchExams();
+    else fetchSchedules();
+  }, [search, activeTab, semesterFilter, page, view]);
 
   return (
     <div className="student-exams-page animate-fade-in">
       <PageHeader
-        title="Examination Schedule"
-        subtitle="Official informational schedule, dates, venues, and invigilation notices"
+        title="My Exams"
+        subtitle="Examinations you are eligible to sit, with session time and room"
       />
+
+      <div className="exams-toolbar-card">
+        <Tabs
+          tabs={[
+            { id: 'schedule', label: 'My Schedule' },
+            { id: 'notices', label: 'Exam Notices' },
+          ]}
+          activeTab={view}
+          onChange={setView}
+          variant="pill"
+        />
+      </div>
+
+      {view === 'schedule' ? (
+        isLoading ? <LoadingState message="Loading your examinations..." />
+          : scheduleError ? (
+            <EmptyState icon={Calendar} title="Could not load schedule" description={scheduleError} />
+          ) : schedules.length === 0 ? (
+            <EmptyState
+              icon={Calendar}
+              title="No examinations assigned"
+              description="You will see a paper here after you are eligible and it is scheduled."
+            />
+          ) : (
+            <div className="exams-cards-grid">
+              {schedules.map((item) => (
+                <div key={item.id} className="exam-card-item">
+                  <div className="exam-card-header">
+                    <div className="exam-card-code-badge">{item.subject?.code || 'N/A'}</div>
+                    <StatusBadge status={item.status} />
+                  </div>
+                  <div className="exam-card-content">
+                    <h3 className="exam-card-title">{item.examination?.title || 'N/A'}</h3>
+                    <p className="exam-card-subject">{item.subject?.name || 'N/A'}</p>
+                    <div className="exam-card-meta-list">
+                      <div className="exam-meta-row">
+                        <Calendar size={14} className="meta-icon" />
+                        <span className="meta-label">Date:</span>
+                        <span className="meta-value">{item.date ? new Date(item.date).toLocaleDateString('en-GB') : 'N/A'}</span>
+                      </div>
+                      <div className="exam-meta-row">
+                        <Clock size={14} className="meta-icon" />
+                        <span className="meta-label">Session:</span>
+                        <span className="meta-value">{item.session?.name || 'N/A'} · {item.session?.startTime || 'N/A'} - {item.session?.endTime || 'N/A'}</span>
+                      </div>
+                      <div className="exam-meta-row">
+                        <Clock size={14} className="meta-icon" />
+                        <span className="meta-label">Reporting:</span>
+                        <span className="meta-value">{item.reportingTime || item.session?.reportingTime || 'N/A'}</span>
+                      </div>
+                      <div className="exam-meta-row">
+                        <MapPin size={14} className="meta-icon" />
+                        <span className="meta-label">Room:</span>
+                        <span className="meta-value">{item.room ? `${item.room.building} ${item.room.roomNumber}` : 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="exam-card-footer">
+                    <span className="exam-invigilator-caption">Instructions on the detail page</span>
+                    <Link to={`/exams/schedule/${item.id}`} className="exam-view-details-btn">
+                      <span>View Details</span>
+                      <ExternalLink size={14} />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+      ) : (
+      <>
 
       {/* Filter and Search toolbar */}
       <div className="exams-toolbar-card">
@@ -166,7 +260,7 @@ const StudentExams = () => {
 
               <div className="exam-card-footer">
                 <span className="exam-invigilator-caption">
-                  Invigilator: <strong>{exam.invigilator}</strong>
+                  Invigilator: <strong>{exam.invigilator || 'N/A'}</strong>
                 </span>
                 <Link
                   to={`/exams/${exam.id}`}
@@ -192,6 +286,8 @@ const StudentExams = () => {
             onPageChange={setPage}
           />
         </div>
+      )}
+      </>
       )}
     </div>
   );

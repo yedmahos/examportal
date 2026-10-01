@@ -1,21 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Award, CheckCircle, Calendar, BookOpen, ShieldCheck, Download, Printer } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { ShieldCheck, Printer } from 'lucide-react';
 import { resultService } from '../../services/resultService';
 import PageHeader from '../../components/common/PageHeader';
 import StatusBadge from '../../components/common/StatusBadge';
 import Button from '../../components/common/Button';
 import LoadingState from '../../components/common/LoadingState';
 import ErrorState from '../../components/common/ErrorState';
-import { useToast } from '../../components/common/Toast';
 import './StudentPages.css';
+
+const formatDate = (value) => {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+const display = (value) => {
+  if (value === undefined || value === null || value === '') return 'N/A';
+  return value;
+};
 
 const StudentResultDetail = () => {
   const { id } = useParams();
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { showToast } = useToast();
 
   const fetchResult = async () => {
     setIsLoading(true);
@@ -34,136 +48,140 @@ const StudentResultDetail = () => {
     fetchResult();
   }, [id]);
 
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleDownload = () => {
-    showToast('Official mark statement downloading...', 'success');
-  };
-
   if (isLoading) return <LoadingState message="Loading examination transcript..." />;
   if (error || !result) {
     return <ErrorState message={error || 'Result record not found'} onRetry={fetchResult} />;
   }
 
+  const exam = result.exam || {};
+  const student = result.student || {};
+  const subject = exam.subject || exam.title || 'Examination Result';
+
   return (
     <div className="result-detail-page animate-fade-in">
       <PageHeader
-        title={result.subject}
-        subtitle={`${result.examCode} • Official Examination Result`}
+        title={subject}
+        subtitle={`${display(exam.examCode)} • Official Examination Result`}
         backUrl="/results"
         backText="Back to Results"
-        badge={<StatusBadge status={result.status} />}
+        badge={<StatusBadge status={result.status || 'N/A'} />}
         actions={
           <div className="result-detail-actions">
-            <Button variant="outline" size="md" icon={Printer} onClick={handlePrint}>
+            <Button variant="outline" size="md" icon={Printer} onClick={() => window.print()}>
               Print Slip
-            </Button>
-            <Button variant="primary" size="md" icon={Download} onClick={handleDownload}>
-              Download Certificate
             </Button>
           </div>
         }
       />
 
-      {/* Official Certificate Card */}
       <div className="official-result-certificate">
-        {/* Certificate Watermark / Header */}
         <div className="cert-header">
           <div className="cert-header-left">
             <span className="cert-inst-name">DIRECTORATE OF ACADEMIC EVALUATION</span>
             <span className="cert-doc-type">Official Statement of Examination Marks</span>
           </div>
           <div className="cert-header-right">
-            <StatusBadge status={result.passFail} size="md" />
+            <StatusBadge status={result.status || 'N/A'} size="md" />
           </div>
         </div>
 
-        {/* Candidate Information Band */}
         <div className="cert-candidate-band">
           <div className="cert-cand-col">
             <span className="cand-label">Candidate Name</span>
-            <span className="cand-value">{result.studentName}</span>
+            <span className="cand-value">{display(student.name)}</span>
           </div>
           <div className="cert-cand-col">
             <span className="cand-label">Student ID</span>
-            <span className="cand-value">{result.studentId}</span>
+            <span className="cand-value">{display(student.studentId)}</span>
           </div>
           <div className="cert-cand-col">
             <span className="cand-label">Department</span>
-            <span className="cand-value">{result.department}</span>
+            <span className="cand-value">{display(student.department)}</span>
           </div>
           <div className="cert-cand-col">
             <span className="cand-label">Academic Term</span>
-            <span className="cand-value">{result.semester} ({result.academicYear})</span>
+            <span className="cand-value">
+              {exam.semester ? `Semester ${exam.semester}` : 'N/A'}
+              {exam.academicYear ? ` (${exam.academicYear})` : ''}
+            </span>
           </div>
         </div>
 
-        {/* Score Breakdown Highlight */}
         <div className="cert-score-highlight-grid">
           <div className="cert-score-card">
             <span className="score-k">Marks Secured</span>
             <div className="score-v-row">
-              <span className="score-big text-primary">{result.marks}</span>
-              <span className="score-denom">/ {result.maxMarks}</span>
+              <span className="score-big text-primary">{display(result.marksObtained)}</span>
+              <span className="score-denom">/ {display(result.maximumMarks)}</span>
             </div>
-            <span className="score-sub">Maximum Marks: {result.maxMarks}</span>
+            <span className="score-sub">Maximum Marks: {display(result.maximumMarks)}</span>
           </div>
 
           <div className="cert-score-card">
             <span className="score-k">Percentage</span>
             <div className="score-v-row">
-              <span className="score-big">{result.percentage}%</span>
+              <span className="score-big">
+                {result.percentage !== undefined && result.percentage !== null
+                  ? `${result.percentage}%`
+                  : 'N/A'}
+              </span>
             </div>
-            <span className="score-sub">Weighted Scaled Score</span>
+            <span className="score-sub">Calculated from recorded marks</span>
           </div>
 
           <div className="cert-score-card">
             <span className="score-k">Letter Grade</span>
             <div className="score-v-row">
-              <span className="score-big text-success">{result.grade}</span>
+              <span className="score-big text-success">{display(result.grade)}</span>
             </div>
-            <span className="score-sub">Grade Points: {result.gpaPoint.toFixed(2)}</span>
+            <span className="score-sub">Grade assigned from percentage</span>
           </div>
 
           <div className="cert-score-card">
             <span className="score-k">Result Status</span>
             <div className="score-v-row">
-              <span className="score-big text-success">{result.passFail}</span>
+              <span className="score-big text-success">{display(result.status)}</span>
             </div>
-            <span className="score-sub">Verified & Sealed</span>
+            <span className="score-sub">
+              {result.published ? 'Published' : 'Not published'}
+            </span>
           </div>
         </div>
 
-        {/* Detailed Assessment Data */}
         <div className="cert-details-section">
           <h4 className="cert-sec-title">Examination Details</h4>
           <div className="cert-details-table">
             <div className="cert-row">
               <span className="row-k">Course Paper</span>
-              <span className="row-v">{result.examTitle}</span>
+              <span className="row-v">{display(exam.title)}</span>
             </div>
             <div className="cert-row">
               <span className="row-k">Course Code</span>
-              <span className="row-v">{result.examCode}</span>
+              <span className="row-v">{display(exam.examCode)}</span>
+            </div>
+            <div className="cert-row">
+              <span className="row-k">Subject</span>
+              <span className="row-v">{display(exam.subject)}</span>
             </div>
             <div className="cert-row">
               <span className="row-k">Examination Held On</span>
-              <span className="row-v">{result.examDate}</span>
+              <span className="row-v">{formatDate(exam.examDate)}</span>
+            </div>
+            <div className="cert-row">
+              <span className="row-k">Venue</span>
+              <span className="row-v">{display(exam.venue)}</span>
+            </div>
+            <div className="cert-row">
+              <span className="row-k">Room</span>
+              <span className="row-v">{display(exam.room)}</span>
             </div>
             <div className="cert-row">
               <span className="row-k">Result Published Date</span>
-              <span className="row-v">{result.publishedDate || 'Pending release'}</span>
-            </div>
-            <div className="cert-row">
-              <span className="row-k">Evaluation Board Remarks</span>
-              <span className="row-v">{result.remarks}</span>
+              <span className="row-v">{formatDate(result.publishedAt)}</span>
             </div>
           </div>
         </div>
 
-        {/* Verification Footer */}
         <div className="cert-footer">
           <div className="cert-seal-box">
             <ShieldCheck size={28} className="text-primary" />

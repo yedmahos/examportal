@@ -1,6 +1,6 @@
 // Activity service
 
-import { get, post } from "./api";
+import { get } from "./api";
 
 export const activityService = {
   // Get activity logs
@@ -25,31 +25,13 @@ export const activityService = {
     };
   },
 
-  // Create activity log
-  async log(
-    action,
-    entity,
-    description,
-    actor = "System Admin",
-    type = "system"
-  ) {
-    const response = await post("/activities", {
-      action,
-      entity,
-      description,
-      actor,
-      type
-    });
-
+  // Activity rows are written by backend controllers.
+  // This method stays as a no-op so a missed call cannot fail a successful save.
+  async log() {
     return {
       success: true,
-      data:
-        response.activity ||
-        response.data ||
-        response,
-      message:
-        response.message ||
-        "Activity logged successfully"
+      data: null,
+      message: "Activity is recorded by the server"
     };
   }
 };
