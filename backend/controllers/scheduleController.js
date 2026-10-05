@@ -3,6 +3,7 @@ const Subject = require("../models/Subject");
 const ExamSession = require("../models/ExamSession");
 const Room = require("../models/Room");
 const Schedule = require("../models/Schedule");
+const RoomAllocation = require("../models/RoomAllocation");
 const ExamEligibility = require("../models/ExamEligibility");
 const { snapshotEligibleStudentIds } = require("../services/eligibilityService");
 const {
@@ -26,6 +27,25 @@ const {
     ownedSubjectIds,
     restrictToIds
 } = require("../utils/departmentScope");
+
+const withAllocations = async (items) => {
+    const rows = await RoomAllocation.find({
+        schedule: { $in: items.map((item) => item._id) }
+    }).populate("room", "roomNumber building floor capacity");
+    const grouped = new Map();
+
+    rows.forEach((row) => {
+        const key = String(row.schedule);
+        const list = grouped.get(key) || [];
+        list.push(row);
+        grouped.set(key, list);
+    });
+
+    return items.map((item) => ({
+        ...item.toObject(),
+        allocations: grouped.get(String(item._id)) || []
+    }));
+};
 
 const populateSchedule = (query) => {
     return query
@@ -241,7 +261,7 @@ const listSchedules = async (req, res) => {
         ]);
 
         res.status(200).json({
-            items,
+            items: await withAllocations(items),
             ...paginationMeta({ page, limit, total })
         });
     } catch (error) {
@@ -271,7 +291,10 @@ const getSchedule = async (req, res) => {
             assertDepartment(await departmentScope(req), subject?.department);
         }
 
-        res.status(200).json({ item });
+        const allocations = await RoomAllocation.find({ schedule: item._id })
+            .populate("room", "roomNumber building floor capacity");
+
+        res.status(200).json({ item, allocations });
     } catch (error) {
         return handleError(res, error, "Get schedule error:");
     }

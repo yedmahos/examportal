@@ -1,5 +1,6 @@
 const Room = require("../models/Room");
 const Schedule = require("../models/Schedule");
+const Department = require("../models/Department");
 const {
     escapeRegex,
     parsePagination,
@@ -14,6 +15,22 @@ const {
 } = require("../utils/http");
 
 const ROOM_TYPES = ["classroom", "laboratory", "hall", "seminar", "other"];
+
+const departmentId = async (value) => {
+    if (value === undefined || value === null || value === "") return undefined;
+    if (!isObjectId(value)) {
+        const error = new Error("Invalid department id");
+        error.status = 400;
+        throw error;
+    }
+    const department = await Department.findById(value).select("_id");
+    if (!department) {
+        const error = new Error("Department not found");
+        error.status = 400;
+        throw error;
+    }
+    return department._id;
+};
 
 const createRoom = async (req, res) => {
     try {
@@ -33,6 +50,8 @@ const createRoom = async (req, res) => {
             return res.status(400).json({ message: "Invalid room type" });
         }
 
+        const department = await departmentId(req.body.department);
+
         const item = await Room.create({
             roomNumber,
             building,
@@ -51,7 +70,8 @@ const createRoom = async (req, res) => {
                     ? req.body.unavailableSessions.filter(isObjectId)
                     : []
             },
-            status: req.body.status === "inactive" ? "inactive" : "active"
+            status: req.body.status === "inactive" ? "inactive" : "active",
+            department
         });
 
         res.status(201).json({ message: "Room created", item });
@@ -150,6 +170,10 @@ const updateRoom = async (req, res) => {
                 return res.status(400).json({ message: "Facilities must be an array" });
             }
             updates.facilities = req.body.facilities.map((item) => String(item).trim()).filter(Boolean);
+        }
+
+        if (req.body.department !== undefined) {
+            updates.department = await departmentId(req.body.department) || null;
         }
 
         if (req.body.status !== undefined) {

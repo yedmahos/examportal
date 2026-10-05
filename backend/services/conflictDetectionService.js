@@ -1,5 +1,6 @@
 const Schedule = require("../models/Schedule");
 const Room = require("../models/Room");
+const RoomAllocation = require("../models/RoomAllocation");
 const Enrollment = require("../models/Enrollment");
 const Subject = require("../models/Subject");
 const ExamSession = require("../models/ExamSession");
@@ -42,7 +43,8 @@ const detectConflicts = async ({
     sessionId,
     roomId,
     eligibleStudentIds = [],
-    ignoreScheduleId
+    ignoreScheduleId,
+    skipRoomCapacity = false
 }) => {
     const conflicts = [];
     const subject = isObjectId(subjectId)
@@ -252,11 +254,23 @@ const detectConflicts = async ({
                     message: "Room is not available for the selected session"
                 });
             } else {
-                const allocation = overlapping.find((schedule) => {
+                const allocationQuery = {
+                    room: room._id,
+                    date: { $gte: dayStart, $lte: dayEnd }
+                };
+
+                if (ignoreScheduleId) {
+                    allocationQuery.schedule = { $ne: ignoreScheduleId };
+                }
+
+                const reserved = await RoomAllocation.find(allocationQuery)
+                    .populate("session", "name startTime endTime");
+                const reservedHit = reserved.some((row) => sessionsOverlap(session, row.session));
+                const scheduleHit = overlapping.some((schedule) => {
                     return schedule.room && String(schedule.room) === String(roomId);
                 });
 
-                if (allocation) {
+                if (scheduleHit || reservedHit) {
                     conflicts.push({
                         type: "room",
                         severity: "blocking",
@@ -264,7 +278,7 @@ const detectConflicts = async ({
                     });
                 }
 
-                if (room.capacity < eligibleStudentIds.length) {
+                if (!skipRoomCapacity && room.capacity < eligibleStudentIds.length) {
                     conflicts.push({
                         type: "room",
                         severity: "blocking",
