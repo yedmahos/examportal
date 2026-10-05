@@ -118,6 +118,20 @@ export const eligibilityService = {
 export const scheduleService = createResourceService("/schedules");
 export const roomService = createResourceService("/rooms");
 
+export const roomAllocationService = {
+  async preview(schedule) {
+    return post("/room-allocations/preview", { schedule });
+  },
+
+  async confirm(schedule) {
+    return post("/room-allocations", { schedule });
+  },
+
+  async forSchedule(scheduleId) {
+    return get(`/room-allocations/schedule/${scheduleId}`);
+  },
+};
+
 export const facultyService = {
   async list() {
     const response = await get("/users/faculty");

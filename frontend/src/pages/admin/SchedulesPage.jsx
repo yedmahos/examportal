@@ -18,6 +18,7 @@ import {
   scheduleService,
   eligibilityService,
   conflictService,
+  roomAllocationService,
 } from "../../services/resourceService";
 import "./AdminPages.css";
 
@@ -109,6 +110,9 @@ const SchedulesPage = () => {
   const [eligibilityError, setEligibilityError] = useState("");
   const [conflicts, setConflicts] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [allocationSchedule, setAllocationSchedule] = useState("");
+  const [allocationPreview, setAllocationPreview] = useState(null);
+  const [allocating, setAllocating] = useState(false);
 
   const loadLists = async () => {
     const [examRes, sessionRes, roomRes] = await Promise.all([
@@ -312,6 +316,35 @@ const SchedulesPage = () => {
     }
   };
 
+  const previewAllocation = async () => {
+    if (!allocationSchedule) return;
+    setAllocating(true);
+    try {
+      const response = await roomAllocationService.preview(allocationSchedule);
+      setAllocationPreview(response);
+    } catch (err) {
+      setAllocationPreview(null);
+      showToast(err.message || "Allocation preview failed", "error");
+    } finally {
+      setAllocating(false);
+    }
+  };
+
+  const confirmAllocation = async () => {
+    if (!allocationSchedule || !allocationPreview?.ok) return;
+    setAllocating(true);
+    try {
+      const response = await roomAllocationService.confirm(allocationSchedule);
+      setAllocationPreview(response);
+      showToast(response.message || "Rooms allocated", "success");
+      loadSchedules();
+    } catch (err) {
+      showToast(err.message || "Rooms were not allocated", "error");
+    } finally {
+      setAllocating(false);
+    }
+  };
+
   const save = async (event) => {
     event.preventDefault();
     setSaving(true);
@@ -359,7 +392,7 @@ const SchedulesPage = () => {
             <FormField label="Reporting time" helperText="From the selected session">
               <Input type="time" readOnly value={form.reportingTime} />
             </FormField>
-            <FormField label="Room">
+            <FormField label="Room" helperText="Manual allocation. Automatic allocation will not replace a saved room.">
               <Select value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} options={rooms.map((item) => ({ value: item.id, label: `${item.building} ${item.roomNumber} (${item.capacity})` }))} placeholder="Select room" />
             </FormField>
             <FormField label="Status">
@@ -395,6 +428,43 @@ const SchedulesPage = () => {
           )}
         </form>
       )}
+      {canSave && (
+        <div className="admin-panel-card phase1-form">
+          <FormField label="Automatic room allocation" helperText="Preview uses the schedule's current eligible students and does not change a manual room.">
+            <Select
+              value={allocationSchedule}
+              onChange={(e) => {
+                setAllocationSchedule(e.target.value);
+                setAllocationPreview(null);
+              }}
+              options={items.map((item) => ({
+                value: item.id,
+                label: `${item.examination?.title || "Examination"} · ${item.subject?.name || "Subject"} · ${item.date ? new Date(item.date).toLocaleDateString("en-GB") : "No date"}`,
+              }))}
+              placeholder="Select a saved schedule"
+            />
+          </FormField>
+          <div className="toolbar-selects-group">
+            <Button type="button" variant="outline" onClick={previewAllocation} isLoading={allocating} disabled={!allocationSchedule}>
+              Preview allocation
+            </Button>
+            <Button type="button" onClick={confirmAllocation} disabled={!allocationPreview?.ok || allocating}>
+              Confirm allocation
+            </Button>
+          </div>
+          {allocationPreview && (
+            <div className="phase1-counts">
+              <p>Students: {allocationPreview.students ?? 0}</p>
+              <p>Rooms: {(allocationPreview.rooms || []).map((room) => room.label || `${room.building || ""} ${room.roomNumber || ""}`.trim()).filter(Boolean).join(", ") || "None"}</p>
+              <p>Capacity: {allocationPreview.capacity ?? 0}</p>
+              <p>Allocated: {allocationPreview.allocated ?? 0}</p>
+              <p>Unused: {allocationPreview.unused ?? 0}</p>
+              <p>Conflicts: {(allocationPreview.conflicts || []).length ? allocationPreview.conflicts.map((conflict) => conflict.message).join("; ") : "None"}</p>
+              <p>Status: {allocationPreview.status || allocationPreview.message}</p>
+            </div>
+          )}
+        </div>
+      )}
       {error ? <ErrorState message={error} onRetry={loadSchedules} /> : (
         <div className="admin-table-panel">
           <DataTable
@@ -407,7 +477,17 @@ const SchedulesPage = () => {
               { title: "Subject", key: "subject", render: (value) => value?.name || "N/A" },
               { title: "Date", key: "date", render: (value) => value ? new Date(value).toLocaleDateString("en-GB") : "N/A" },
               { title: "Session", key: "session", render: (value) => value?.name || "N/A" },
-              { title: "Room", key: "room", render: (value) => value ? `${value.building} ${value.roomNumber}` : "N/A" },
+              {
+                title: "Room",
+                key: "room",
+                render: (value, row) => {
+                  if (value?.roomNumber) return `${value.building} ${value.roomNumber}`;
+                  const labels = (row.allocations || [])
+                    .map((allocation) => allocation.room ? `${allocation.room.building} ${allocation.room.roomNumber}` : "")
+                    .filter(Boolean);
+                  return labels.length ? labels.join(", ") : "N/A";
+                },
+              },
               { title: "Students", key: "eligibleStudents", render: (value) => Array.isArray(value) ? value.length : 0 },
               { title: "Status", key: "status", render: (value) => <StatusBadge status={value} size="sm" /> },
               { title: "Warnings", key: "warnings", render: (value) => Array.isArray(value) && value.length ? value.length : "None" },

@@ -52,6 +52,7 @@ const eligibilityRoutes = require("./routes/eligibilityRoutes");
 const scheduleRoutes = require("./routes/scheduleRoutes");
 const conflictRoutes = require("./routes/conflictRoutes");
 const roomRoutes = require("./routes/roomRoutes");
+const roomAllocationRoutes = require("./routes/roomAllocationRoutes");
 const { ensureCatalog } = require("./services/catalogSeed");
 
 const app = express();
@@ -103,6 +104,7 @@ app.use("/api/eligibility", eligibilityRoutes);
 app.use("/api/schedules", scheduleRoutes);
 app.use("/api/conflicts", conflictRoutes);
 app.use("/api/rooms", roomRoutes);
+app.use("/api/room-allocations", roomAllocationRoutes);
 
 // Unknown route handler
 app.use((req, res) => {

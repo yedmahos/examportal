@@ -16,6 +16,7 @@ const Line = ({ label, value }) => (
 const StudentScheduleDetail = () => {
   const { id } = useParams();
   const [item, setItem] = useState(null);
+  const [allocations, setAllocations] = useState([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -23,7 +24,11 @@ const StudentScheduleDetail = () => {
     let active = true;
     setIsLoading(true);
     scheduleService.get(id)
-      .then((response) => { if (active) setItem(response.data); })
+      .then((response) => {
+        if (!active) return;
+        setItem(response.data);
+        setAllocations(Array.isArray(response.allocations) ? response.allocations : []);
+      })
       .catch((err) => { if (active) setError(err.message || "Schedule not found"); })
       .finally(() => { if (active) setIsLoading(false); });
     return () => { active = false; };
@@ -49,8 +54,8 @@ const StudentScheduleDetail = () => {
         <Line label="Start time" value={item.session?.startTime} />
         <Line label="End time" value={item.session?.endTime} />
         <Line label="Reporting time" value={item.reportingTime || item.session?.reportingTime} />
-        <Line label="Room" value={item.room?.roomNumber} />
-        <Line label="Building" value={item.room?.building} />
+        <Line label="Room" value={item.room?.roomNumber || allocations.map((allocation) => allocation.room?.roomNumber).filter(Boolean).join(", ")} />
+        <Line label="Building" value={item.room?.building || allocations.map((allocation) => allocation.room?.building).filter(Boolean).join(", ")} />
         <Line label="Duration" value={item.duration ? `${item.duration} minutes` : ""} />
         <Line label="Instructions" value={item.examination?.instructions} />
       </div>

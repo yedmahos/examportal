@@ -60,6 +60,11 @@ const roomSchema = new mongoose.Schema(
             type: String,
             enum: ["active", "inactive"],
             default: "active"
+        },
+
+        department: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Department"
         }
     },
     {
