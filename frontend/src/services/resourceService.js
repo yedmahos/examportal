@@ -118,6 +118,28 @@ export const eligibilityService = {
 export const scheduleService = createResourceService("/schedules");
 export const roomService = createResourceService("/rooms");
 
+export const seatingService = {
+  async preview(schedule, strategy) {
+    return post("/seating-plans/preview", { schedule, strategy });
+  },
+
+  async confirm(schedule, strategy) {
+    return post("/seating-plans", { schedule, strategy });
+  },
+
+  async regenerate(schedule, strategy) {
+    return post("/seating-plans/regenerate", { schedule, strategy });
+  },
+
+  async forSchedule(scheduleId) {
+    return get(`/seating-plans/schedule/${scheduleId}`);
+  },
+
+  async mine(scheduleId) {
+    return get(`/seating-plans/student/me?schedule=${scheduleId}`);
+  },
+};
+
 export const roomAllocationService = {
   async preview(schedule) {
     return post("/room-allocations/preview", { schedule });
