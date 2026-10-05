@@ -8,11 +8,11 @@ import {
   User,
   LogOut,
   Shield,
-  GraduationCap,
   ExternalLink,
   ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { roleBase, roleLabel } from '../../utils/roles';
 import Avatar from '../common/Avatar';
 import SearchBar from '../common/SearchBar';
 import NotificationPanel from '../notifications/NotificationPanel';
@@ -65,8 +65,8 @@ const Topbar = ({ onOpenMobileMenu }) => {
   // Contextual title based on path
   const getContextualTitle = () => {
     const path = location.pathname;
-    if (path === '/dashboard' || path === '/admin/dashboard') {
-      return `Welcome Back, ${user?.name || (role === 'admin' ? 'Administrator' : 'Student')}`;
+    if (path.endsWith('/dashboard')) {
+      return `Welcome Back, ${user?.name || roleLabel(role)}`;
     }
     if (path.startsWith('/exams')) return 'Exams Schedule';
     if (path.startsWith('/results')) return 'Grades & Academic Results';
@@ -81,10 +81,10 @@ const Topbar = ({ onOpenMobileMenu }) => {
     if (!val.trim()) return;
     showToast(`Searching for: "${val}"`, 'info');
     // If student, navigate to exams with query
-    if (role === 'admin') {
-      navigate(`/admin/exams?q=${encodeURIComponent(val)}`);
-    } else {
+    if (role === 'student') {
       navigate(`/exams?q=${encodeURIComponent(val)}`);
+    } else {
+      navigate(`/admin/exams?q=${encodeURIComponent(val)}`);
     }
   };
 
@@ -182,15 +182,7 @@ const Topbar = ({ onOpenMobileMenu }) => {
                     <span className="dropdown-name">{user?.name}</span>
                     <span className="dropdown-email">{user?.email}</span>
                     <span className="dropdown-role-chip">
-                      {role === 'admin' ? (
-                        <>
-                          <Shield size={11} /> Admin Officer
-                        </>
-                      ) : (
-                        <>
-                          <GraduationCap size={11} /> Student ({user?.studentId || 'Verified'})
-                        </>
-                      )}
+                      <Shield size={11} /> {roleLabel(role)}
                     </span>
                   </div>
                 </div>
@@ -198,7 +190,7 @@ const Topbar = ({ onOpenMobileMenu }) => {
                 <div className="dropdown-divider" />
 
                 <Link
-                  to={role === 'admin' ? '/admin/profile' : '/profile'}
+                  to={role === 'student' ? '/student/profile' : `${roleBase(role)}/profile`}
                   className="profile-dropdown-item"
                   onClick={() => setIsProfileMenuOpen(false)}
                 >

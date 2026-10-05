@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, UserCheck, Shield, ArrowRight } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, GraduationCap, BookOpen, Building2, ClipboardCheck, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { roleHome } from '../../utils/roles';
+import { demoAccounts, demoSignInEnabled } from './demoAccounts';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import FormField from '../../components/common/FormField';
@@ -19,10 +20,7 @@ const LoginPage = () => {
 
   const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const { showToast } = useToast();
-
-  const from = location.state?.from?.pathname;
 
   const validate = () => {
     const newErrors = {};
@@ -51,11 +49,7 @@ const LoginPage = () => {
     try {
       const user = await login(email, password);
       showToast(`Welcome back, ${user.name}!`, 'success');
-      if (from) {
-        navigate(from, { replace: true });
-      } else {
-        navigate(roleHome(user.role), { replace: true });
-      }
+      navigate(roleHome(user.role), { replace: true });
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Login failed. Please check your credentials.';
       setAuthError(msg);
@@ -65,26 +59,34 @@ const LoginPage = () => {
     }
   };
 
-  const handleQuickDemo = async (role) => {
-    setAuthError('');
-    let demoEmail = 'student@example.com';
-    let demoPass = 'student123';
+  const demoIcons = {
+    student: GraduationCap,
+    faculty: BookOpen,
+    department_admin: Building2,
+    examination_cell: ClipboardCheck,
+    super_admin: ShieldCheck,
+  };
 
-    if (role === 'admin') {
-      demoEmail = 'admin@example.com';
-      demoPass = 'admin123';
+  const handleQuickDemo = async (account) => {
+    setAuthError('');
+
+    if (!demoSignInEnabled || !account.password) {
+      setAuthError('Demo sign-in is disabled in this environment.');
+      return;
     }
 
-    setEmail(demoEmail);
-    setPassword(demoPass);
+    setEmail(account.email);
+    setPassword(account.password);
     setIsSubmitting(true);
 
     try {
-      const user = await login(demoEmail, demoPass);
-      showToast(`Signed in as demo ${role}`, 'success');
+      const user = await login(account.email, account.password);
+      showToast(`Welcome back, ${user.name}!`, 'success');
       navigate(roleHome(user.role), { replace: true });
     } catch (err) {
-      setAuthError(err.message);
+      const msg = err.response?.data?.message || err.message || 'Demo sign-in failed.';
+      setAuthError(msg);
+      showToast(msg, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -109,33 +111,25 @@ const LoginPage = () => {
           Select a role below to automatically authenticate with pre-configured credentials:
         </p>
         <div className="demo-btns-grid">
-          <button
-            type="button"
-            className="demo-btn student-demo-btn"
-            onClick={() => handleQuickDemo('student')}
-            disabled={isSubmitting}
-          >
-            <UserCheck size={16} className="demo-btn-icon" />
-            <div className="demo-btn-text">
-              <span className="demo-role-name">Student Account</span>
-              <span className="demo-creds">student@example.com</span>
-            </div>
-            <ArrowRight size={14} className="demo-arrow" />
-          </button>
-
-          <button
-            type="button"
-            className="demo-btn admin-demo-btn"
-            onClick={() => handleQuickDemo('admin')}
-            disabled={isSubmitting}
-          >
-            <Shield size={16} className="demo-btn-icon" />
-            <div className="demo-btn-text">
-              <span className="demo-role-name">Admin Officer</span>
-              <span className="demo-creds">admin@example.com</span>
-            </div>
-            <ArrowRight size={14} className="demo-arrow" />
-          </button>
+          {demoAccounts.map((account) => {
+            const Icon = demoIcons[account.key];
+            return (
+              <button
+                key={account.key}
+                type="button"
+                className="demo-btn"
+                onClick={() => handleQuickDemo(account)}
+                disabled={isSubmitting}
+              >
+                <Icon size={16} className="demo-btn-icon" />
+                <div className="demo-btn-text">
+                  <span className="demo-role-name">{account.label}</span>
+                  <span className="demo-creds">{account.email}</span>
+                </div>
+                <ArrowRight size={14} className="demo-arrow" />
+              </button>
+            );
+          })}
         </div>
       </div>
 

@@ -39,7 +39,7 @@ const updateAdmin = async () => {
         }
 
         console.log("Email:", admin.email);
-        console.log("Password set to: admin123");
+        console.log("Role:", admin.role);
         process.exit(0);
     } catch (error) {
         console.error("Admin update failed:", error.message);

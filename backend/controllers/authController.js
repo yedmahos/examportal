@@ -252,7 +252,8 @@ const loginUser = async (req, res) => {
                 semester: user.semester,
                 academicYear:
                     user.academicYear,
-                phone: user.phone
+                phone: user.phone,
+                departmentRef: user.departmentRef || null
             }
         });
     } catch (error) {

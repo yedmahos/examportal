@@ -1,6 +1,7 @@
 // Authentication service
 
 import {
+  get,
   post,
   getAuthToken,
   setAuthToken,
@@ -8,6 +9,24 @@ import {
   getStoredUser,
   setStoredUser
 } from "./api";
+
+const storedUser = (user) => {
+  if (!user) return null;
+
+  return {
+    id: user.id || user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    studentId: user.studentId,
+    department: user.department,
+    departmentRef: user.departmentRef || null,
+    program: user.program,
+    semester: user.semester,
+    academicYear: user.academicYear,
+    phone: user.phone
+  };
+};
 
 export const authService = {
   // Login user
@@ -31,20 +50,42 @@ export const authService = {
 
     setAuthToken(token);
 
-    if (user) {
-      setStoredUser(user);
+    const sessionUser = storedUser(user);
+
+    if (sessionUser) {
+      setStoredUser(sessionUser);
     }
 
     return {
       success: true,
       data: {
-        user,
+        user: sessionUser,
         token
       },
       message:
         response.message ||
         "Login successful"
     };
+  },
+
+  async restoreSession() {
+    if (!getAuthToken()) return null;
+
+    try {
+      const response = await get("/profile");
+      const sessionUser = storedUser(response.user);
+
+      if (!sessionUser?.role) {
+        clearAuth();
+        return null;
+      }
+
+      setStoredUser(sessionUser);
+      return sessionUser;
+    } catch {
+      clearAuth();
+      return null;
+    }
   },
 
   // Register student
@@ -75,14 +116,16 @@ export const authService = {
 
     setAuthToken(token);
 
-    if (user) {
-      setStoredUser(user);
+    const sessionUser = storedUser(user);
+
+    if (sessionUser) {
+      setStoredUser(sessionUser);
     }
 
     return {
       success: true,
       data: {
-        user,
+        user: sessionUser,
         token
       },
       message:

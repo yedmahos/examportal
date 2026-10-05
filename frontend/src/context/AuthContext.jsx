@@ -14,29 +14,22 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const restoreSession = () => {
-      try {
-        const token = authService.isAuthenticated();
-        const cachedUser = authService.getStoredUser();
+    let active = true;
 
-        if (token && cachedUser) {
-          setUser(cachedUser);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error(
-          "Failed to restore auth session:",
-          error
-        );
+    authService.restoreSession()
+      .then((sessionUser) => {
+        if (active) setUser(sessionUser);
+      })
+      .catch(() => {
+        if (active) setUser(null);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
 
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
+    return () => {
+      active = false;
     };
-
-    restoreSession();
   }, []);
 
   // Login user

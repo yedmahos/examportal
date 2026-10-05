@@ -34,21 +34,17 @@ The portal runs on **`http://localhost:4890`** (or your configured Vite host).
 
 ---
 
-## 🔑 Demo Accounts & Credentials
+## Demo accounts
 
-One-click demo buttons are provided on the login page, or you can enter credentials manually:
+Development login offers five roles: Student, Faculty, Department Admin, Examination Cell, and Super Admin. The one-click buttons call the normal login API. They are enabled only in the development frontend, so privileged passwords are not shipped in the production bundle.
 
-### 1. Student Account
-- **Email:** `student@example.com`
-- **Password:** `password123`
-- **Redirects to:** `/dashboard`
-- **Features:** View upcoming exam schedules, next exam countdown, GPA & cohort comparison charts, official grade transcripts, downloadable certificates, notification center, personal profile editing.
+Provision a local database with:
 
-### 2. Administrator Account
-- **Email:** `admin@example.com`
-- **Password:** `admin123`
-- **Redirects to:** `/admin/dashboard`
-- **Features:** Candidate directory (search, filter, dossier, status toggle), exam scheduler (create/edit/delete timetables, venue and invigilator assignment), results manager (record marks, publish/unpublish transcripts), circular notices broadcaster, audit activity log.
+```bash
+node backend/scripts/seedDemoAccounts.js
+```
+
+The script refuses a remote database unless `ALLOW_DEMO_SEED=development` is set explicitly. It does not print passwords.
 
 ---
 

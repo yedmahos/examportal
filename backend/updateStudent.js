@@ -45,7 +45,7 @@ const updateStudent = async () => {
         }
 
         console.log("Email:", student.email);
-        console.log("Password set to: password123");
+        console.log("Role:", student.role);
         process.exit(0);
     } catch (error) {
         console.error("Student update failed:", error.message);

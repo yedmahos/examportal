@@ -2,16 +2,13 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, Home, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { roleHome } from '../utils/roles';
 import Button from '../components/common/Button';
 
 const NotFound = () => {
   const { user, isAuthenticated } = useAuth();
 
-  const homeUrl = !isAuthenticated
-    ? '/login'
-    : user?.role === 'admin'
-    ? '/admin/dashboard'
-    : '/dashboard';
+  const homeUrl = !isAuthenticated ? '/login' : roleHome(user?.role);
 
   return (
     <div style={{
