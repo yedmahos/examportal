@@ -4,7 +4,7 @@ const ExamSession = require("../models/ExamSession");
 const Room = require("../models/Room");
 const Schedule = require("../models/Schedule");
 const ExamEligibility = require("../models/ExamEligibility");
-const { eligibleStudentIds } = require("../services/eligibilityService");
+const { snapshotEligibleStudentIds } = require("../services/eligibilityService");
 const {
     detectConflicts,
     hasBlockingConflict
@@ -133,10 +133,16 @@ const loadScheduleInput = async (body) => {
         throw error;
     }
 
-    const students = await eligibleStudentIds({
+    const students = await snapshotEligibleStudentIds({
         examinationId: examination._id,
         subjectId: subject._id
     });
+
+    if (status === "scheduled" && students.length === 0) {
+        const error = new Error("No eligible students found for this examination and subject.");
+        error.status = 400;
+        throw error;
+    }
 
     return {
         examination,

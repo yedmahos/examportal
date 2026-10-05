@@ -1,7 +1,7 @@
 const Exam = require("../models/Exam");
 const Subject = require("../models/Subject");
 const ExamSession = require("../models/ExamSession");
-const { eligibleStudentIds } = require("../services/eligibilityService");
+const { snapshotEligibleStudentIds } = require("../services/eligibilityService");
 const { detectConflicts } = require("../services/conflictDetectionService");
 const {
     isObjectId,
@@ -47,7 +47,7 @@ const checkConflicts = async (req, res) => {
             return res.status(400).json({ message: "Invalid room id" });
         }
 
-        const students = await eligibleStudentIds({
+        const students = await snapshotEligibleStudentIds({
             examinationId: examination._id,
             subjectId: subject._id
         });

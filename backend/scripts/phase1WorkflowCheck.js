@@ -480,6 +480,11 @@ const run = async () => {
     });
     check("valid schedule saved", schedule.status === 201, JSON.stringify(schedule.data));
     check(
+        "schedule snapshots the registered student",
+        (schedule.data.item.eligibleStudents || []).some((id) => String(id) === String(studentA._id)),
+        JSON.stringify(schedule.data.item?.eligibleStudents)
+    );
+    check(
         "schedule stores session reporting time",
         schedule.data.item.reportingTime === "08:30",
         schedule.data.item?.reportingTime
@@ -697,6 +702,100 @@ const run = async () => {
         "draft does not block the room",
         !(ignoredDraft.data.conflicts || []).some((item) => item.type === "room"),
         JSON.stringify(ignoredDraft.data.conflicts)
+    );
+
+    const freshSubject = await request("POST", "/api/subjects", {
+        token: tokens.cell,
+        body: {
+            code: "CSE604",
+            name: "Calculated On Save",
+            subjectType: "theory",
+            department: dept.data.item._id,
+            program: program.data.item._id,
+            semester: 6,
+            duration: 90
+        }
+    });
+    await request("PATCH", `/api/subjects/${freshSubject.data.item._id}/verification`, {
+        token: tokens.dept,
+        body: { verificationStatus: "verified" }
+    });
+    await request("POST", "/api/registrations", {
+        token: tokens.cell,
+        body: {
+            student: studentA._id,
+            subject: freshSubject.data.item._id,
+            academicYear: year.data.item._id,
+            semester: 6,
+            registrationStatus: "registered"
+        }
+    });
+    const calculatedOnSave = await request("POST", "/api/schedules", {
+        token: tokens.cell,
+        body: {
+            examination: examination.data.exam._id,
+            subject: freshSubject.data.item._id,
+            date: "2026-10-12",
+            session: morning._id,
+            room: room.data.item._id,
+            status: "scheduled"
+        }
+    });
+    check(
+        "schedule creation calculates eligibility before snapshot",
+        calculatedOnSave.status === 201
+            && (calculatedOnSave.data.item.eligibleStudents || []).some((id) => String(id) === String(studentA._id))
+            && !(calculatedOnSave.data.item.eligibleStudents || []).some((id) => String(id) === String(studentB._id)),
+        JSON.stringify({
+            status: calculatedOnSave.status,
+            students: calculatedOnSave.data.item?.eligibleStudents,
+            message: calculatedOnSave.data.message
+        })
+    );
+    const mineFresh = await request("GET", "/api/schedules/mine", { token: tokens.a });
+    check(
+        "registered student receives the calculated schedule",
+        (mineFresh.data.items || []).some((item) => item.subject?.code === "CSE604"),
+        JSON.stringify(mineFresh.data.items?.map((item) => item.subject?.code))
+    );
+    const mineFreshB = await request("GET", "/api/schedules/mine", { token: tokens.b });
+    check(
+        "student without registration does not receive it",
+        !(mineFreshB.data.items || []).some((item) => item.subject?.code === "CSE604"),
+        JSON.stringify(mineFreshB.data.items?.map((item) => item.subject?.code))
+    );
+
+    const emptySubject = await request("POST", "/api/subjects", {
+        token: tokens.cell,
+        body: {
+            code: "CSE605",
+            name: "Nobody Registered",
+            subjectType: "theory",
+            department: dept.data.item._id,
+            program: program.data.item._id,
+            semester: 6,
+            duration: 90
+        }
+    });
+    await request("PATCH", `/api/subjects/${emptySubject.data.item._id}/verification`, {
+        token: tokens.dept,
+        body: { verificationStatus: "verified" }
+    });
+    const nobody = await request("POST", "/api/schedules", {
+        token: tokens.cell,
+        body: {
+            examination: examination.data.exam._id,
+            subject: emptySubject.data.item._id,
+            date: "2026-10-13",
+            session: morning._id,
+            room: room.data.item._id,
+            status: "scheduled"
+        }
+    });
+    check(
+        "scheduled paper with no eligible students is rejected",
+        nobody.status === 400 && nobody.data.message === "No eligible students found for this examination and subject.",
+        JSON.stringify(nobody.data)
     );
 
     const facultyCreateDenied = await request("POST", "/api/users/faculty", {
