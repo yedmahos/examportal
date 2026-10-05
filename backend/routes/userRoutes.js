@@ -7,7 +7,8 @@ const {
 const {
     createFaculty,
     listFaculty,
-    assignDepartment
+    assignDepartment,
+    createStaff
 } = require("../controllers/facultyController");
 
 const router = express.Router();
@@ -24,6 +25,13 @@ router.post(
     protect,
     authorize("super_admin"),
     createFaculty
+);
+
+router.post(
+    "/staff",
+    protect,
+    authorize("super_admin"),
+    createStaff
 );
 
 router.patch(
