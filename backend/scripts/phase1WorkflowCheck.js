@@ -45,6 +45,9 @@ mount("/api/conflicts", require("../routes/conflictRoutes"));
 mount("/api/rooms", require("../routes/roomRoutes"));
 mount("/api/exams", require("../routes/examRoutes"));
 mount("/api/dashboard", require("../routes/dashboardRoutes"));
+mount("/api/auth", require("../routes/authRoutes"));
+mount("/api/users", require("../routes/userRoutes"));
+mount("/api/students", require("../routes/studentRoutes"));
 
 const results = [];
 
@@ -183,6 +186,30 @@ const run = async () => {
     });
     check("legacy admin can create department", dept.status === 201, JSON.stringify(dept.data));
 
+    await User.findByIdAndUpdate(deptAdmin._id, { departmentRef: dept.data.item._id });
+
+    const otherDept = await request("POST", "/api/departments", {
+        token: tokens.super,
+        body: { name: "Electrical", code: "EEE" }
+    });
+    check("super admin can create another department", otherDept.status === 201, JSON.stringify(otherDept.data));
+
+    const ownDepartments = await request("GET", "/api/departments?limit=20", { token: tokens.dept });
+    check(
+        "department admin sees only their department",
+        ownDepartments.status === 200 && (ownDepartments.data.items || []).length === 1
+            && ownDepartments.data.items[0].code === "CSE",
+        JSON.stringify(ownDepartments.data.items?.map((item) => item.code))
+    );
+    const hiddenDepartment = await request("GET", `/api/departments/${otherDept.data.item._id}`, { token: tokens.dept });
+    check("department admin cannot open another department", hiddenDepartment.status === 403, String(hiddenDepartment.status));
+    const broadDepartments = await request("GET", "/api/departments?limit=20", { token: tokens.cell });
+    check(
+        "examination cell still sees every department",
+        broadDepartments.status === 200 && (broadDepartments.data.items || []).length >= 2,
+        String((broadDepartments.data.items || []).length)
+    );
+
     const program = await request("POST", "/api/programs", {
         token: tokens.super,
         body: { name: "BSc Computing", code: "BSC", department: dept.data.item._id, duration: 4 }
@@ -274,6 +301,15 @@ const run = async () => {
             duration: 180
         }
     });
+    const verifyTwo = await request("PATCH", `/api/subjects/${subjectTwo.data.item._id}/verification`, {
+        token: tokens.dept,
+        body: { verificationStatus: "verified" }
+    });
+    const verifyElective = await request("PATCH", `/api/subjects/${elective.data.item._id}/verification`, {
+        token: tokens.dept,
+        body: { verificationStatus: "verified" }
+    });
+    check("remaining subjects verified", verifyTwo.status === 200 && verifyElective.status === 200);
 
     const verifyDenied = await request("PATCH", `/api/subjects/${subject.data.item._id}/verification`, {
         token: tokens.cell,
@@ -602,6 +638,134 @@ const run = async () => {
     });
     check("department admin cannot save schedules", deptSave.status === 403, String(deptSave.status));
 
+    const unverified = await request("POST", "/api/subjects", {
+        token: tokens.cell,
+        body: {
+            code: "CSE603",
+            name: "Unverified Systems",
+            subjectType: "theory",
+            department: dept.data.item._id,
+            program: program.data.item._id,
+            semester: 6,
+            duration: 90
+        }
+    });
+    const unverifiedSchedule = await request("POST", "/api/schedules", {
+        token: tokens.cell,
+        body: {
+            examination: examination.data.exam._id,
+            subject: unverified.data.item._id,
+            date: "2026-10-06",
+            session: morning._id,
+            room: room.data.item._id,
+            status: "scheduled"
+        }
+    });
+    check(
+        "unverified subject cannot be scheduled",
+        unverifiedSchedule.status === 400,
+        JSON.stringify(unverifiedSchedule.data)
+    );
+
+    await request("PATCH", `/api/subjects/${unverified.data.item._id}/verification`, {
+        token: tokens.dept,
+        body: { verificationStatus: "verified" }
+    });
+    const draft = await request("POST", "/api/schedules", {
+        token: tokens.cell,
+        body: {
+            examination: examination.data.exam._id,
+            subject: unverified.data.item._id,
+            date: "2026-10-06",
+            session: evening.data.item._id,
+            room: room.data.item._id,
+            status: "draft"
+        }
+    });
+    check("draft schedule can be saved", draft.status === 201, JSON.stringify(draft.data));
+    const ignoredDraft = await request("POST", "/api/conflicts/check", {
+        token: tokens.cell,
+        body: {
+            examination: examination.data.exam._id,
+            subject: elective.data.item._id,
+            date: "2026-10-06",
+            session: evening.data.item._id,
+            room: room.data.item._id
+        }
+    });
+    check(
+        "draft does not block the room",
+        !(ignoredDraft.data.conflicts || []).some((item) => item.type === "room"),
+        JSON.stringify(ignoredDraft.data.conflicts)
+    );
+
+    const facultyCreateDenied = await request("POST", "/api/users/faculty", {
+        token: tokens.faculty,
+        body: { name: "Other Faculty", email: "other-faculty@example.com", password: "password123" }
+    });
+    check("faculty cannot create faculty", facultyCreateDenied.status === 403, String(facultyCreateDenied.status));
+
+    const facultyAccount = await request("POST", "/api/users/faculty", {
+        token: tokens.super,
+        body: {
+            name: "Assigned Faculty",
+            email: "assigned-faculty@example.com",
+            password: "password123",
+            department: dept.data.item._id
+        }
+    });
+    check(
+        "super admin creates faculty",
+        facultyAccount.status === 201 && facultyAccount.data.user.role === "faculty",
+        JSON.stringify(facultyAccount.data)
+    );
+    const facultyLogin = await request("POST", "/api/auth/login", {
+        body: { email: "assigned-faculty@example.com", password: "password123" }
+    });
+    check("faculty can log in", facultyLogin.status === 200 && Boolean(facultyLogin.data.token), String(facultyLogin.status));
+    const facultyToken = facultyLogin.data.token;
+    const facultyStudents = await request("POST", "/api/students", {
+        token: facultyToken,
+        body: { name: "Should Fail", email: "no-student@example.com", password: "password123" }
+    });
+    check("faculty cannot create students", facultyStudents.status === 403, String(facultyStudents.status));
+    const facultySchedule = await request("POST", "/api/schedules", {
+        token: facultyToken,
+        body: {
+            examination: examination.data.exam._id,
+            subject: subject.data.item._id,
+            date: "2026-10-08",
+            session: morning._id,
+            room: room.data.item._id,
+            status: "scheduled"
+        }
+    });
+    check("faculty cannot save schedules", facultySchedule.status === 403, String(facultySchedule.status));
+    const facultyDashboard = await request("GET", "/api/dashboard/admin", { token: facultyToken });
+    check("faculty can open the staff dashboard", facultyDashboard.status === 200, String(facultyDashboard.status));
+    const assigned = await request("PATCH", `/api/users/${deptAdmin._id}/department`, {
+        token: tokens.super,
+        body: { department: dept.data.item._id }
+    });
+    check(
+        "super admin can assign a department admin",
+        assigned.status === 200 && String(assigned.data.user.departmentRef?._id || assigned.data.user.departmentRef) === String(dept.data.item._id),
+        JSON.stringify(assigned.data)
+    );
+
+    const otherProgram = await request("POST", "/api/programs", {
+        token: tokens.super,
+        body: { name: "BSc Electrical", code: "EEE", department: otherDept.data.item._id, duration: 4 }
+    });
+    const hiddenProgram = await request("GET", `/api/programs/${otherProgram.data.item._id}`, { token: tokens.dept });
+    check("department admin cannot open another program", hiddenProgram.status === 403, String(hiddenProgram.status));
+    const ownPrograms = await request("GET", "/api/programs?limit=20", { token: tokens.dept });
+    check(
+        "department admin programs stay in their department",
+        (ownPrograms.data.items || []).every((item) => String(item.department?._id || item.department) === String(dept.data.item._id)),
+        JSON.stringify(ownPrograms.data.items?.map((item) => item.code))
+    );
+
     const dashboard = await request("GET", "/api/dashboard/admin", { token: tokens.cell });
     check(
         "dashboard metrics are numeric",
@@ -609,7 +773,10 @@ const run = async () => {
             && typeof dashboard.data.statistics.totalSubjects === "number"
             && typeof dashboard.data.statistics.subjectsScheduled === "number"
             && typeof dashboard.data.statistics.totalRooms === "number"
-            && typeof dashboard.data.statistics.conflicts === "number",
+            && typeof dashboard.data.statistics.conflicts === "number"
+            && typeof dashboard.data.statistics.upcomingExams === "number"
+            && typeof dashboard.data.statistics.completedExams === "number"
+            && dashboard.data.statistics.completedExams >= 2,
         JSON.stringify(dashboard.data?.statistics)
     );
     check(

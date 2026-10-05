@@ -113,6 +113,30 @@ export const eligibilityService = createResourceService("/eligibility");
 export const scheduleService = createResourceService("/schedules");
 export const roomService = createResourceService("/rooms");
 
+export const facultyService = {
+  async list() {
+    const response = await get("/users/faculty");
+    const items = Array.isArray(response.items) ? response.items.map(withId) : [];
+    return { data: { items }, message: response.message || "" };
+  },
+
+  async create(body) {
+    const response = await post("/users/faculty", body);
+    return {
+      data: withId(response.user),
+      message: response.message || "Faculty account created",
+    };
+  },
+
+  async assignDepartment(id, department) {
+    const response = await patch(`/users/${id}/department`, { department });
+    return {
+      data: withId(response.user),
+      message: response.message || "Department assignment saved",
+    };
+  },
+};
+
 export const conflictService = {
   async check(body) {
     return post("/conflicts/check", body);

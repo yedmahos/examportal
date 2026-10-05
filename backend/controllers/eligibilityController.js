@@ -6,6 +6,8 @@ const {
     paginationMeta
 } = require("../utils/query");
 const { isObjectId, invalidId, handleError } = require("../utils/http");
+const Subject = require("../models/Subject");
+const { departmentScope, assertDepartment } = require("../utils/departmentScope");
 
 const calculate = async (req, res) => {
     try {
@@ -33,6 +35,10 @@ const listEligibility = async (req, res) => {
                 message: "Examination and subject ids are required"
             });
         }
+
+        const subject = await Subject.findById(req.query.subject).select("department");
+        if (!subject) return res.status(404).json({ message: "Subject not found" });
+        assertDepartment(await departmentScope(req), subject.department);
 
         const { page, limit, skip } = parsePagination(req.query);
         const query = {
@@ -86,6 +92,10 @@ const listEligibility = async (req, res) => {
 const updateEligibility = async (req, res) => {
     try {
         if (!isObjectId(req.params.id)) return invalidId(res, "eligibility id");
+
+        const existing = await ExamEligibility.findById(req.params.id).populate("subject", "department");
+        if (!existing) return res.status(404).json({ message: "Eligibility record not found" });
+        assertDepartment(await departmentScope(req), existing.subject?.department);
 
         const updates = {};
 

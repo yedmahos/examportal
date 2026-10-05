@@ -8,6 +8,12 @@ const {
     parseSemester
 } = require("../utils/query");
 const { isObjectId, invalidId, handleError } = require("../utils/http");
+const {
+    departmentScope,
+    assertDepartment,
+    ownedSubjectIds,
+    restrictToIds
+} = require("../utils/departmentScope");
 
 const populateRegistration = (query) => {
     return query
@@ -41,6 +47,7 @@ const createRegistration = async (req, res) => {
             return res.status(404).json({ message: "Student not found" });
         }
         if (!subject) return res.status(404).json({ message: "Subject not found" });
+        assertDepartment(await departmentScope(req), subject.department);
         if (!academicYear) return res.status(404).json({ message: "Academic year not found" });
 
         if (subject.semester !== semester) {
@@ -95,6 +102,8 @@ const listRegistrations = async (req, res) => {
             query.registrationStatus = req.query.registrationStatus;
         }
 
+        restrictToIds(query, "subject", await ownedSubjectIds(await departmentScope(req)));
+
         const [items, total] = await Promise.all([
             populateRegistration(
                 SubjectRegistration.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit)
@@ -118,6 +127,10 @@ const updateRegistration = async (req, res) => {
         if (!["pending", "registered", "dropped"].includes(req.body.registrationStatus)) {
             return res.status(400).json({ message: "Invalid registration status" });
         }
+
+        const current = await SubjectRegistration.findById(req.params.id).populate("subject", "department");
+        if (!current) return res.status(404).json({ message: "Registration not found" });
+        assertDepartment(await departmentScope(req), current.subject?.department);
 
         const item = await populateRegistration(
             SubjectRegistration.findByIdAndUpdate(

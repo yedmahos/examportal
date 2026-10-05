@@ -15,6 +15,13 @@ const {
     handleError,
     parseDateOnly
 } = require("../utils/http");
+const {
+    departmentScope,
+    assertDepartment,
+    ownedProgramIds,
+    ownedBatchIds,
+    restrictToIds
+} = require("../utils/departmentScope");
 
 const sendList = (res, items, page, limit, total) => {
     res.status(200).json({
@@ -218,6 +225,9 @@ const listDepartments = async (req, res) => {
             query.$or = [{ name: regex }, { code: regex }];
         }
 
+        const scope = await departmentScope(req);
+        if (scope) query._id = scope._id;
+
         const [items, total] = await Promise.all([
             Department.find(query).sort({ name: 1 }).skip(skip).limit(limit),
             Department.countDocuments(query)
@@ -240,6 +250,8 @@ const getDepartment = async (req, res) => {
         if (!item) {
             return res.status(404).json({ message: "Department not found" });
         }
+
+        assertDepartment(await departmentScope(req), item._id);
 
         res.status(200).json({ item });
     } catch (error) {
@@ -347,6 +359,9 @@ const listPrograms = async (req, res) => {
             query.$or = [{ name: regex }, { code: regex }];
         }
 
+        const scope = await departmentScope(req);
+        restrictToIds(query, "department", scope ? [scope._id] : null);
+
         const [items, total] = await Promise.all([
             Program.find(query)
                 .populate("department", "name code")
@@ -374,6 +389,8 @@ const getProgram = async (req, res) => {
         if (!item) {
             return res.status(404).json({ message: "Program not found" });
         }
+
+        assertDepartment(await departmentScope(req), item.department?._id || item.department);
 
         res.status(200).json({ item });
     } catch (error) {
@@ -515,6 +532,8 @@ const listBatches = async (req, res) => {
             query.name = new RegExp(escapeRegex(req.query.search), "i");
         }
 
+        restrictToIds(query, "program", await ownedProgramIds(await departmentScope(req)));
+
         const [items, total] = await Promise.all([
             Batch.find(query)
                 .populate("academicYear", "name")
@@ -544,6 +563,11 @@ const getBatch = async (req, res) => {
             });
 
         if (!item) return res.status(404).json({ message: "Batch not found" });
+
+        assertDepartment(
+            await departmentScope(req),
+            item.program?.department?._id || item.program?.department
+        );
 
         res.status(200).json({ item });
     } catch (error) {
@@ -650,6 +674,8 @@ const listSections = async (req, res) => {
             query.name = new RegExp(escapeRegex(req.query.search), "i");
         }
 
+        restrictToIds(query, "batch", await ownedBatchIds(await departmentScope(req)));
+
         const [items, total] = await Promise.all([
             Section.find(query)
                 .populate({
@@ -676,6 +702,12 @@ const getSection = async (req, res) => {
         const item = await Section.findById(req.params.id).populate("batch", "name semester");
 
         if (!item) return res.status(404).json({ message: "Section not found" });
+
+        const scope = await departmentScope(req);
+        if (scope) {
+            const batch = await Batch.findById(item.batch?._id || item.batch).populate("program", "department");
+            assertDepartment(scope, batch?.program?.department);
+        }
 
         res.status(200).json({ item });
     } catch (error) {

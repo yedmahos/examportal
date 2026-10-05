@@ -9,7 +9,8 @@ const {
     rangesOverlap
 } = require("../utils/http");
 
-const ACTIVE_SCHEDULE = ["draft", "scheduled"];
+// Drafts are unfinished and must not occupy a subject, student, batch, or room.
+const ACTIVE_SCHEDULE = ["scheduled"];
 
 const sameDay = (left, right) => dateKey(left) === dateKey(right);
 

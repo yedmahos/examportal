@@ -8,6 +8,11 @@ const {
     parseSemester
 } = require("../utils/query");
 const { isObjectId, invalidId, handleError } = require("../utils/http");
+const {
+    departmentScope,
+    assertDepartment,
+    restrictToIds
+} = require("../utils/departmentScope");
 
 const SUBJECT_TYPES = ["theory", "practical", "elective", "viva", "lab"];
 
@@ -114,6 +119,9 @@ const listSubjects = async (req, res) => {
             query.$or = [{ name: regex }, { code: regex }];
         }
 
+        const scope = await departmentScope(req);
+        restrictToIds(query, "department", scope ? [scope._id] : null);
+
         const [items, total] = await Promise.all([
             populateSubject(Subject.find(query).sort({ code: 1 }).skip(skip).limit(limit)),
             Subject.countDocuments(query)
@@ -135,6 +143,8 @@ const getSubject = async (req, res) => {
         const item = await populateSubject(Subject.findById(req.params.id));
 
         if (!item) return res.status(404).json({ message: "Subject not found" });
+
+        assertDepartment(await departmentScope(req), item.department?._id || item.department);
 
         res.status(200).json({ item });
     } catch (error) {
@@ -244,6 +254,10 @@ const verifySubject = async (req, res) => {
                 message: "verificationStatus must be verified or unverified"
             });
         }
+
+        const current = await Subject.findById(req.params.id).select("department");
+        if (!current) return res.status(404).json({ message: "Subject not found" });
+        assertDepartment(await departmentScope(req), current.department);
 
         const item = await populateSubject(
             Subject.findByIdAndUpdate(

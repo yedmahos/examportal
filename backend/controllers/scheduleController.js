@@ -3,6 +3,7 @@ const Subject = require("../models/Subject");
 const ExamSession = require("../models/ExamSession");
 const Room = require("../models/Room");
 const Schedule = require("../models/Schedule");
+const ExamEligibility = require("../models/ExamEligibility");
 const { eligibleStudentIds } = require("../services/eligibilityService");
 const {
     detectConflicts,
@@ -19,6 +20,12 @@ const {
     parseDateOnly,
     isTime
 } = require("../utils/http");
+const {
+    departmentScope,
+    assertDepartment,
+    ownedSubjectIds,
+    restrictToIds
+} = require("../utils/departmentScope");
 
 const populateSchedule = (query) => {
     return query
@@ -53,6 +60,12 @@ const loadScheduleInput = async (body) => {
     if (!subject || subject.status !== "active") {
         const error = new Error("Active subject not found");
         error.status = 404;
+        throw error;
+    }
+
+    if (subject.verificationStatus !== "verified") {
+        const error = new Error("Subject must be verified before it can be scheduled");
+        error.status = 400;
         throw error;
     }
 
@@ -214,6 +227,8 @@ const listSchedules = async (req, res) => {
             query.date = date;
         }
 
+        restrictToIds(query, "subject", await ownedSubjectIds(await departmentScope(req)));
+
         const [items, total] = await Promise.all([
             populateSchedule(Schedule.find(query).sort({ date: 1 }).skip(skip).limit(limit)),
             Schedule.countDocuments(query)
@@ -240,10 +255,14 @@ const getSchedule = async (req, res) => {
             const allowed = (item.eligibleStudents || []).some(
                 (studentId) => String(studentId) === String(req.user.userId)
             );
+            const stillEligible = allowed && await studentRetainsEligibility(item, req.user.userId);
 
-            if (!allowed || item.status !== "scheduled") {
+            if (!stillEligible || item.status !== "scheduled") {
                 return res.status(403).json({ message: "Access denied" });
             }
+        } else if (req.user.role === "department_admin") {
+            const subject = await Subject.findById(item.subject?._id || item.subject).select("department");
+            assertDepartment(await departmentScope(req), subject?.department);
         }
 
         res.status(200).json({ item });
@@ -319,6 +338,19 @@ const deleteSchedule = async (req, res) => {
     }
 };
 
+const studentRetainsEligibility = async (schedule, studentId) => {
+    const examinationId = schedule.examination?._id || schedule.examination;
+    const subjectId = schedule.subject?._id || schedule.subject;
+    const row = await ExamEligibility.findOne({
+        student: studentId,
+        examination: examinationId,
+        subject: subjectId,
+        eligibilityStatus: { $in: ["eligible", "registered"] }
+    }).select("_id");
+
+    return Boolean(row);
+};
+
 const mySchedules = async (req, res) => {
     try {
         const items = await populateSchedule(
@@ -327,8 +359,15 @@ const mySchedules = async (req, res) => {
                 status: "scheduled"
             }).sort({ date: 1 })
         );
+        const visible = [];
 
-        res.status(200).json({ items });
+        for (const item of items) {
+            if (await studentRetainsEligibility(item, req.user.userId)) {
+                visible.push(item);
+            }
+        }
+
+        res.status(200).json({ items: visible });
     } catch (error) {
         return handleError(res, error, "My schedules error:");
     }
