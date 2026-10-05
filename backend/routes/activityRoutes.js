@@ -8,6 +8,7 @@ const {
     protect,
     authorize
 } = require("../middleware/authMiddleware");
+const { GROUPS } = require("../utils/roles");
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ const router = express.Router();
 router.get(
     "/",
     protect,
-    authorize("admin"),
+    authorize(...GROUPS.systemWriters),
     getRecentActivities
 );
 

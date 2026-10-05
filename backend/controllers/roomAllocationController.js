@@ -71,6 +71,13 @@ const listScheduleAllocations = async (req, res) => {
     }
 };
 
+const assignedAllocations = async (req, res) => {
+    res.status(200).json({
+        items: [],
+        message: "No assigned rooms are available."
+    });
+};
+
 const deleteAllocation = async (req, res) => {
     try {
         if (!isObjectId(req.params.id)) return invalidId(res, "allocation id");
@@ -92,5 +99,6 @@ module.exports = {
     previewAllocation,
     createAllocation,
     listScheduleAllocations,
-    deleteAllocation
+    deleteAllocation,
+    assignedAllocations
 };

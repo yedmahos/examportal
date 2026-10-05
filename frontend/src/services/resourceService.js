@@ -156,16 +156,32 @@ export const roomAllocationService = {
 
 export const facultyService = {
   async list() {
-    const response = await get("/users/faculty");
+    const response = await get("/users/staff");
     const items = Array.isArray(response.items) ? response.items.map(withId) : [];
     return { data: { items }, message: response.message || "" };
   },
 
   async create(body) {
-    const response = await post("/users/faculty", body);
+    const response = await post("/users/staff", body);
     return {
       data: withId(response.user),
-      message: response.message || "Faculty account created",
+      message: response.message || "Account created",
+    };
+  },
+
+  async assignRole(id, body) {
+    const response = await patch(`/users/${id}/role`, body);
+    return {
+      data: withId(response.user),
+      message: response.message || "Role assignment saved",
+    };
+  },
+
+  async setStatus(id, status) {
+    const response = await patch(`/users/${id}/status`, { status });
+    return {
+      data: withId(response.user),
+      message: response.message || "Account status saved",
     };
   },
 

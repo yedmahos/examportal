@@ -15,7 +15,9 @@ const {
 
 const router = express.Router();
 
-const studentManagers = ["admin", "department_admin", "examination_cell"];
+const { GROUPS } = require("../utils/roles");
+
+const studentManagers = GROUPS.studentManagers;
 
 router.get(
     "/",

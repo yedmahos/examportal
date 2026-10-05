@@ -9,6 +9,7 @@ const {
     protect,
     authorize
 } = require("../middleware/authMiddleware");
+const { GROUPS } = require("../utils/roles");
 
 const router = express.Router();
 
@@ -24,7 +25,7 @@ router.get(
 router.get(
     "/admin",
     protect,
-    authorize("admin", "department_admin", "examination_cell", "faculty"),
+    authorize(...GROUPS.staffDashboard),
     getAdminDashboard
 );
 

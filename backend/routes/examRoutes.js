@@ -12,6 +12,7 @@ const {
     protect,
     authorize
 } = require("../middleware/authMiddleware");
+const { GROUPS } = require("../utils/roles");
 
 const router = express.Router();
 
@@ -25,7 +26,7 @@ router.get("/:id", protect, getExamById);
 router.post(
     "/",
     protect,
-    authorize("admin", "examination_cell"),
+    authorize(...GROUPS.examManagers),
     createExam
 );
 
@@ -33,7 +34,7 @@ router.post(
 router.put(
     "/:id",
     protect,
-    authorize("admin", "examination_cell"),
+    authorize(...GROUPS.examManagers),
     updateExam
 );
 
@@ -41,7 +42,7 @@ router.put(
 router.delete(
     "/:id",
     protect,
-    authorize("admin", "examination_cell"),
+    authorize(...GROUPS.examManagers),
     deleteExam
 );
 

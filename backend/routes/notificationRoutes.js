@@ -12,6 +12,7 @@ const {
     protect,
     authorize
 } = require("../middleware/authMiddleware");
+const { GROUPS } = require("../utils/roles");
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ router.get(
 router.post(
     "/",
     protect,
-    authorize("admin"),
+    authorize(...GROUPS.announcementManagers),
     createNotification
 );
 

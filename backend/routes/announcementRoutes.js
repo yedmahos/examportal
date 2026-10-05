@@ -15,6 +15,7 @@ const {
     protect,
     authorize
 } = require("../middleware/authMiddleware");
+const { GROUPS } = require("../utils/roles");
 
 const router = express.Router();
 
@@ -38,7 +39,7 @@ router.get(
 router.get(
     "/all",
     protect,
-    authorize("admin"),
+    authorize(...GROUPS.announcementManagers),
     getAllAnnouncements
 );
 
@@ -50,7 +51,7 @@ router.get(
 router.post(
     "/",
     protect,
-    authorize("admin"),
+    authorize(...GROUPS.announcementManagers),
     createAnnouncement
 );
 
@@ -62,7 +63,7 @@ router.post(
 router.put(
     "/:id",
     protect,
-    authorize("admin"),
+    authorize(...GROUPS.announcementManagers),
     updateAnnouncement
 );
 
@@ -74,7 +75,7 @@ router.put(
 router.delete(
     "/:id",
     protect,
-    authorize("admin"),
+    authorize(...GROUPS.announcementManagers),
     deleteAnnouncement
 );
 
@@ -86,7 +87,7 @@ router.delete(
 router.patch(
     "/:id/publish",
     protect,
-    authorize("admin"),
+    authorize(...GROUPS.announcementManagers),
     publishAnnouncement
 );
 
@@ -98,7 +99,7 @@ router.patch(
 router.patch(
     "/:id/unpublish",
     protect,
-    authorize("admin"),
+    authorize(...GROUPS.announcementManagers),
     unpublishAnnouncement
 );
 

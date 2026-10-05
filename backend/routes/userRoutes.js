@@ -7,7 +7,11 @@ const {
 const {
     createFaculty,
     listFaculty,
-    assignDepartment
+    assignDepartment,
+    createStaff,
+    listStaff,
+    assignRole,
+    setAccountStatus
 } = require("../controllers/facultyController");
 
 const router = express.Router();
@@ -24,6 +28,34 @@ router.post(
     protect,
     authorize("super_admin"),
     createFaculty
+);
+
+router.get(
+    "/staff",
+    protect,
+    authorize("super_admin"),
+    listStaff
+);
+
+router.post(
+    "/staff",
+    protect,
+    authorize("super_admin"),
+    createStaff
+);
+
+router.patch(
+    "/:id/role",
+    protect,
+    authorize("super_admin"),
+    assignRole
+);
+
+router.patch(
+    "/:id/status",
+    protect,
+    authorize("super_admin"),
+    setAccountStatus
 );
 
 router.patch(
@@ -54,11 +86,11 @@ router.get(
     }
 );
 
-// Admin only
+// Legacy probe. Super Admin satisfies it; a generic admin grant is not required.
 router.get(
     "/admin-only",
     protect,
-    authorize("admin"),
+    authorize("super_admin"),
     (req, res) => {
         res.json({
             message: "Admin access granted",

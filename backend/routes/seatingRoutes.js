@@ -7,7 +7,8 @@ const {
     getPlan,
     getRoom,
     mySeat,
-    deletePlan
+    deletePlan,
+    assignedSeating
 } = require("../controllers/seatingController");
 const { protect, authorize } = require("../middleware/authMiddleware");
 
@@ -17,6 +18,7 @@ const managers = ["examination_cell", "super_admin", "department_admin"];
 router.post("/preview", protect, authorize(...managers), preview);
 router.post("/regenerate", protect, authorize(...managers), regeneratePlan);
 router.get("/student/me", protect, authorize("student"), mySeat);
+router.get("/faculty/me", protect, authorize("faculty"), assignedSeating);
 router.get("/schedule/:scheduleId", protect, authorize(...managers), getBySchedule);
 router.get("/:id/rooms/:roomId", protect, authorize(...managers), getRoom);
 router.get("/:id", protect, authorize(...managers), getPlan);

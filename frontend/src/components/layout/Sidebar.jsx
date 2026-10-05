@@ -7,14 +7,13 @@ import {
   Bell,
   User,
   Users,
-  Megaphone,
   ChevronLeft,
   ChevronRight,
   BookOpen,
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { canAccess, roleLabel } from '../../utils/roles';
+import { roleBase, roleLabel } from '../../utils/roles';
 import './Layout.css';
 
 const Sidebar = ({
@@ -31,88 +30,73 @@ const Sidebar = ({
     navigate('/login');
   };
 
-  const studentNavGroups = [
-    {
-      groupTitle: null,
-      items: [
-        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      ],
-    },
-    {
-      groupTitle: 'Academic',
-      items: [
-        { to: '/exams', label: 'Exams Schedule', icon: Calendar },
-        { to: '/results', label: 'Grades & Results', icon: Award },
-      ],
-    },
-    {
-      groupTitle: 'Updates',
-      items: [
-        { to: '/notifications', label: 'Notifications', icon: Bell },
-      ],
-    },
-    {
-      groupTitle: 'Account',
-      items: [
-        { to: '/profile', label: 'My Profile', icon: User },
-      ],
-    },
-  ];
+  const base = roleBase(role);
+  const link = (path, label, icon) => ({ to: `${base}${path}`, label, icon });
 
-  const staffRoles = ['admin', 'super_admin', 'examination_cell', 'department_admin', 'faculty'];
+  const navigation = {
+    student: [
+      { items: [link('/dashboard', 'Dashboard', LayoutDashboard)] },
+      { groupTitle: 'Academic', items: [
+        link('/schedule', 'My Schedule', Calendar),
+        link('/results', 'Results', Award),
+      ] },
+      { groupTitle: 'Updates', items: [link('/notifications', 'Notifications', Bell)] },
+      { groupTitle: 'Account', items: [link('/profile', 'Profile', User)] },
+    ],
+    faculty: [
+      { items: [link('/dashboard', 'Dashboard', LayoutDashboard)] },
+      { groupTitle: 'Duties', items: [
+        link('/duties', 'My Duties', Calendar),
+        link('/schedule', 'My Schedule', BookOpen),
+      ] },
+      { groupTitle: 'Updates', items: [link('/notifications', 'Notifications', Bell)] },
+      { groupTitle: 'Account', items: [link('/profile', 'Profile', User)] },
+    ],
+    department_admin: [
+      { items: [link('/dashboard', 'Dashboard', LayoutDashboard)] },
+      { groupTitle: 'Department', items: [
+        link('/students', 'Students', Users),
+        link('/subjects', 'Subjects', BookOpen),
+        link('/batches', 'Batches', Users),
+        link('/registrations', 'Registrations', BookOpen),
+        link('/eligibility', 'Eligibility', Award),
+        link('/schedules', 'Department Schedules', Calendar),
+      ] },
+      { groupTitle: 'Updates', items: [link('/notifications', 'Notifications', Bell)] },
+      { groupTitle: 'Account', items: [link('/profile', 'Profile', User)] },
+    ],
+    examination_cell: [
+      { items: [link('/dashboard', 'Dashboard', LayoutDashboard)] },
+      { groupTitle: 'Examination', items: [
+        link('/structure', 'Academic Structure', BookOpen),
+        link('/examinations', 'Examinations', Calendar),
+        link('/subjects', 'Subjects', BookOpen),
+        link('/eligibility', 'Eligibility', Award),
+        link('/schedules', 'Schedules', Calendar),
+        link('/rooms', 'Rooms', BookOpen),
+      ] },
+      { groupTitle: 'Updates', items: [link('/notifications', 'Notifications', Bell)] },
+      { groupTitle: 'Account', items: [link('/profile', 'Profile', User)] },
+    ],
+    super_admin: [
+      { items: [link('/dashboard', 'Dashboard', LayoutDashboard)] },
+      { groupTitle: 'Administration', items: [
+        link('/users', 'Users', Users),
+        link('/departments', 'Departments', BookOpen),
+        link('/configuration', 'System Configuration', Award),
+        link('/students', 'Students', Users),
+        link('/examinations', 'Examinations', Calendar),
+        link('/subjects', 'Subjects', BookOpen),
+        link('/eligibility', 'Eligibility', Award),
+        link('/schedules', 'Schedules', Calendar),
+        link('/rooms', 'Rooms', BookOpen),
+      ] },
+      { groupTitle: 'Updates', items: [link('/notifications', 'Notifications', Bell)] },
+      { groupTitle: 'Account', items: [link('/profile', 'Profile', User)] },
+    ],
+  };
 
-  const adminNavGroups = [
-    {
-      groupTitle: null,
-      items: [
-        { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: staffRoles },
-      ],
-    },
-    {
-      groupTitle: 'Academic Structure',
-      items: [
-        { to: '/admin/academic-years', label: 'Academic Years', icon: Calendar, roles: ['super_admin'] },
-        { to: '/admin/departments', label: 'Departments', icon: BookOpen, roles: ['super_admin', 'department_admin', 'examination_cell'] },
-        { to: '/admin/programs', label: 'Programs', icon: BookOpen, roles: ['super_admin', 'department_admin', 'examination_cell'] },
-        { to: '/admin/batches', label: 'Batches', icon: Users, roles: ['super_admin', 'department_admin', 'examination_cell'] },
-        { to: '/admin/sections', label: 'Sections', icon: Users, roles: ['super_admin', 'department_admin', 'examination_cell'] },
-      ],
-    },
-    {
-      groupTitle: 'Examination',
-      items: [
-        { to: '/admin/exam-types', label: 'Exam Types', icon: Award, roles: ['super_admin', 'examination_cell', 'department_admin'] },
-        { to: '/admin/examinations', label: 'Examinations', icon: Calendar, roles: ['super_admin', 'examination_cell'] },
-        { to: '/admin/sessions', label: 'Sessions', icon: Calendar, roles: ['super_admin', 'examination_cell', 'department_admin'] },
-        { to: '/admin/subjects', label: 'Subjects', icon: BookOpen, roles: ['super_admin', 'examination_cell', 'department_admin'] },
-        { to: '/admin/enrollments', label: 'Enrollment', icon: Users, roles: ['super_admin', 'examination_cell', 'department_admin'] },
-        { to: '/admin/eligibility', label: 'Eligibility', icon: Award, roles: ['super_admin', 'examination_cell', 'department_admin'] },
-        { to: '/admin/schedules', label: 'Schedules', icon: Calendar, roles: ['super_admin', 'examination_cell', 'department_admin'] },
-        { to: '/admin/rooms', label: 'Rooms', icon: BookOpen, roles: ['super_admin', 'examination_cell'] },
-      ],
-    },
-    {
-      groupTitle: 'Academic Management',
-      items: [
-        { to: '/admin/faculty', label: 'Faculty', icon: User, roles: ['super_admin'] },
-        { to: '/admin/students', label: 'Students', icon: Users, roles: ['admin', 'super_admin', 'department_admin', 'examination_cell'] },
-        { to: '/admin/exams', label: 'Exam Notices', icon: Calendar, roles: ['admin', 'super_admin', 'examination_cell'] },
-        { to: '/admin/results', label: 'Results', icon: Award, roles: ['admin', 'super_admin'] },
-        { to: '/admin/announcements', label: 'Announcements', icon: Megaphone, roles: ['admin', 'super_admin'] },
-      ],
-    },
-    {
-      groupTitle: 'Account',
-      items: [
-        { to: '/admin/profile', label: 'Profile', icon: User, roles: staffRoles },
-      ],
-    },
-  ].map((group) => ({
-    ...group,
-    items: group.items.filter((item) => canAccess(role, item.roles)),
-  })).filter((group) => group.items.length);
-
-  const navGroups = role && role !== 'student' ? adminNavGroups : studentNavGroups;
+  const navGroups = navigation[role] || (role && role !== "student" ? navigation.super_admin : navigation.student);
 
   return (
     <>
@@ -176,7 +160,7 @@ const Sidebar = ({
                     <NavLink
                       key={item.to}
                       to={item.to}
-                      end={item.to === '/dashboard' || item.to === '/admin/dashboard'}
+                      end={item.to.endsWith('/dashboard')}
                       onClick={() => isMobileOpen && onCloseMobile()}
                       className={({ isActive }) =>
                         `sidebar-nav-item ${isActive ? 'active' : ''}`

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, UserCheck, Shield, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { roleHome } from '../../utils/roles';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import FormField from '../../components/common/FormField';
@@ -52,10 +53,8 @@ const LoginPage = () => {
       showToast(`Welcome back, ${user.name}!`, 'success');
       if (from) {
         navigate(from, { replace: true });
-      } else if (user.role === 'admin') {
-        navigate('/admin/dashboard', { replace: true });
       } else {
-        navigate('/dashboard', { replace: true });
+        navigate(roleHome(user.role), { replace: true });
       }
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Login failed. Please check your credentials.';
@@ -83,11 +82,7 @@ const LoginPage = () => {
     try {
       const user = await login(demoEmail, demoPass);
       showToast(`Signed in as demo ${role}`, 'success');
-      if (role === 'admin') {
-        navigate('/admin/dashboard', { replace: true });
-      } else {
-        navigate('/dashboard', { replace: true });
-      }
+      navigate(roleHome(user.role), { replace: true });
     } catch (err) {
       setAuthError(err.message);
     } finally {

@@ -72,7 +72,7 @@ const normalizeStatus = (value) => {
 };
 
 const creatorFieldsFor = (role) => {
-    return roleSatisfies(role, ["admin"])
+    return roleSatisfies(role, ["super_admin", "examination_cell"])
         ? "name email role"
         : "name role";
 };

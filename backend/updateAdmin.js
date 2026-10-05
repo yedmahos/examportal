@@ -17,10 +17,16 @@ const updateAdmin = async () => {
         if (admin) {
             admin.name = "Portal Admin";
             admin.password = hashedPassword;
-            admin.role = "admin";
+            if (!admin.role || admin.role === "admin") {
+                admin.role = "admin";
+            }
             admin.status = "active";
             await admin.save();
             console.log("Admin user updated successfully in MongoDB!");
+            console.log("Role preserved:", admin.role);
+            if (admin.role === "admin") {
+                console.log("Legacy admin was not auto-mapped. Use roleMigrationCheck.js --apply --map with an explicit role.");
+            }
         } else {
             admin = await User.create({
                 name: "Portal Admin",

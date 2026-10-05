@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, Eye, EyeOff, Hash, BookOpen, GraduationCap, Phone, Calendar } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { roleHome } from '../../utils/roles';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
@@ -97,7 +98,7 @@ const RegisterPage = () => {
     try {
       const user = await register(formData);
       showToast(`Account successfully created for ${user.name}!`, 'success');
-      navigate('/dashboard', { replace: true });
+      navigate(roleHome(user.role), { replace: true });
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Registration failed.';
       setAuthError(msg);

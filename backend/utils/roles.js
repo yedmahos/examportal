@@ -9,6 +9,13 @@ const ROLES = {
 
 const ALL_ROLES = Object.values(ROLES);
 
+const ASSIGNABLE_ROLES = [
+    ROLES.FACULTY,
+    ROLES.DEPARTMENT_ADMIN,
+    ROLES.EXAMINATION_CELL,
+    ROLES.SUPER_ADMIN
+];
+
 const STAFF_ROLES = [
     ROLES.FACULTY,
     ROLES.DEPARTMENT_ADMIN,
@@ -17,9 +24,11 @@ const STAFF_ROLES = [
     ROLES.ADMIN
 ];
 
-// Privileges implied by the role stored on the user.
-// Legacy "admin" keeps full staff access until records are migrated.
-// "super_admin" can call routes that still authorize("admin").
+// Each PRD role keeps only its own permission.
+// Super Admin is the full-access role, so it also satisfies the narrower roles.
+// Legacy "admin" is not an organizational role. Unmigrated accounts keep the
+// same access as Super Admin until an explicit mapping script is applied.
+// New routes must name the PRD roles. They must not authorize("admin") alone.
 const GRANTED = {
     student: [ROLES.STUDENT],
     faculty: [ROLES.FACULTY],
@@ -27,13 +36,28 @@ const GRANTED = {
     examination_cell: [ROLES.EXAMINATION_CELL],
     super_admin: [
         ROLES.SUPER_ADMIN,
-        ROLES.ADMIN,
         ROLES.EXAMINATION_CELL,
         ROLES.DEPARTMENT_ADMIN,
-        ROLES.FACULTY
+        ROLES.FACULTY,
+        ROLES.ADMIN
     ],
     admin: [
         ROLES.ADMIN,
+        ROLES.SUPER_ADMIN,
+        ROLES.EXAMINATION_CELL,
+        ROLES.DEPARTMENT_ADMIN,
+        ROLES.FACULTY
+    ]
+};
+
+const GROUPS = {
+    examManagers: [ROLES.EXAMINATION_CELL, ROLES.SUPER_ADMIN],
+    departmentReaders: [ROLES.EXAMINATION_CELL, ROLES.SUPER_ADMIN, ROLES.DEPARTMENT_ADMIN],
+    systemWriters: [ROLES.SUPER_ADMIN],
+    studentManagers: [ROLES.EXAMINATION_CELL, ROLES.SUPER_ADMIN, ROLES.DEPARTMENT_ADMIN],
+    resultManagers: [ROLES.EXAMINATION_CELL, ROLES.SUPER_ADMIN],
+    announcementManagers: [ROLES.EXAMINATION_CELL, ROLES.SUPER_ADMIN],
+    staffDashboard: [
         ROLES.SUPER_ADMIN,
         ROLES.EXAMINATION_CELL,
         ROLES.DEPARTMENT_ADMIN,
@@ -51,7 +75,9 @@ const isStaffRole = (role) => STAFF_ROLES.includes(role);
 module.exports = {
     ROLES,
     ALL_ROLES,
+    ASSIGNABLE_ROLES,
     STAFF_ROLES,
+    GROUPS,
     roleSatisfies,
     isStaffRole
 };

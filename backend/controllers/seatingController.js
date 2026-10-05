@@ -227,6 +227,13 @@ const mySeat = async (req, res) => {
     }
 };
 
+const assignedSeating = async (req, res) => {
+    res.status(200).json({
+        items: [],
+        message: "No assigned seating is available."
+    });
+};
+
 const deletePlan = async (req, res) => {
     try {
         const plan = await loadPlan(req.params.id, req);
@@ -247,5 +254,6 @@ module.exports = {
     getPlan,
     getRoom,
     mySeat,
+    assignedSeating,
     deletePlan
 };
