@@ -20,9 +20,16 @@ export const canAccess = (role, allowed = []) => {
   return allowed.some((item) => granted.includes(item));
 };
 
-export const roleHome = (role) => (
-  STAFF_ROLES.includes(role) ? "/admin/dashboard" : "/dashboard"
-);
+const ROLE_HOME = {
+  student: "/student/dashboard",
+  faculty: "/faculty/dashboard",
+  department_admin: "/department-admin/dashboard",
+  examination_cell: "/examination-cell/dashboard",
+  super_admin: "/super-admin/dashboard",
+  admin: "/admin/dashboard",
+};
+
+export const roleHome = (role) => ROLE_HOME[role] || "/dashboard";
 
 export const roleLabel = (role) => {
   const labels = {

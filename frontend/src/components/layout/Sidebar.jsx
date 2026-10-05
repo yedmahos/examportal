@@ -112,7 +112,70 @@ const Sidebar = ({
     items: group.items.filter((item) => canAccess(role, item.roles)),
   })).filter((group) => group.items.length);
 
-  const navGroups = role && role !== 'student' ? adminNavGroups : studentNavGroups;
+  const link = (to, label, icon) => ({ to, label, icon });
+  const roleNav = {
+    student: [
+      { items: [link('/student/dashboard', 'Dashboard', LayoutDashboard)] },
+      { groupTitle: 'Academic', items: [
+        link('/student/schedule', 'My Schedule', Calendar),
+        link('/student/results', 'Results', Award),
+      ] },
+      { groupTitle: 'Updates', items: [link('/student/notifications', 'Notifications', Bell)] },
+      { groupTitle: 'Account', items: [link('/student/profile', 'Profile', User)] },
+    ],
+    faculty: [
+      { items: [link('/faculty/dashboard', 'Dashboard', LayoutDashboard)] },
+      { groupTitle: 'Duties', items: [
+        link('/faculty/duties', 'My Duties', Calendar),
+        link('/faculty/schedule', 'My Schedule', BookOpen),
+      ] },
+      { groupTitle: 'Updates', items: [link('/faculty/notifications', 'Notifications', Bell)] },
+      { groupTitle: 'Account', items: [link('/faculty/profile', 'Profile', User)] },
+    ],
+    department_admin: [
+      { items: [link('/department-admin/dashboard', 'Dashboard', LayoutDashboard)] },
+      { groupTitle: 'Department', items: [
+        link('/department-admin/students', 'Students', Users),
+        link('/department-admin/subjects', 'Subjects', BookOpen),
+        link('/department-admin/batches', 'Batches', Users),
+        link('/department-admin/registrations', 'Registrations', BookOpen),
+        link('/department-admin/eligibility', 'Eligibility', Award),
+        link('/department-admin/schedules', 'Department Schedules', Calendar),
+      ] },
+      { groupTitle: 'Updates', items: [link('/department-admin/notifications', 'Notifications', Bell)] },
+      { groupTitle: 'Account', items: [link('/department-admin/profile', 'Profile', User)] },
+    ],
+    examination_cell: [
+      { items: [link('/examination-cell/dashboard', 'Dashboard', LayoutDashboard)] },
+      { groupTitle: 'Examination', items: [
+        link('/examination-cell/structure', 'Academic Structure', BookOpen),
+        link('/examination-cell/examinations', 'Examinations', Calendar),
+        link('/examination-cell/subjects', 'Subjects', BookOpen),
+        link('/examination-cell/eligibility', 'Eligibility', Award),
+        link('/examination-cell/schedules', 'Schedules', Calendar),
+        link('/examination-cell/rooms', 'Rooms', BookOpen),
+      ] },
+      { groupTitle: 'Updates', items: [link('/examination-cell/notifications', 'Notifications', Bell)] },
+      { groupTitle: 'Account', items: [link('/examination-cell/profile', 'Profile', User)] },
+    ],
+    super_admin: [
+      { items: [link('/super-admin/dashboard', 'Dashboard', LayoutDashboard)] },
+      { groupTitle: 'Administration', items: [
+        link('/super-admin/users', 'Users', Users),
+        link('/super-admin/departments', 'Departments', BookOpen),
+        link('/super-admin/configuration', 'System Configuration', Award),
+        link('/super-admin/examinations', 'Examinations', Calendar),
+        link('/super-admin/subjects', 'Subjects', BookOpen),
+        link('/super-admin/eligibility', 'Eligibility', Award),
+        link('/super-admin/schedules', 'Schedules', Calendar),
+        link('/super-admin/rooms', 'Rooms', BookOpen),
+      ] },
+      { groupTitle: 'Updates', items: [link('/super-admin/notifications', 'Notifications', Bell)] },
+      { groupTitle: 'Account', items: [link('/super-admin/profile', 'Profile', User)] },
+    ],
+  };
+
+  const navGroups = roleNav[role] || (role && role !== 'student' ? adminNavGroups : studentNavGroups);
 
   return (
     <>
@@ -176,7 +239,7 @@ const Sidebar = ({
                     <NavLink
                       key={item.to}
                       to={item.to}
-                      end={item.to === '/dashboard' || item.to === '/admin/dashboard'}
+                      end={item.to.endsWith('/dashboard')}
                       onClick={() => isMobileOpen && onCloseMobile()}
                       className={({ isActive }) =>
                         `sidebar-nav-item ${isActive ? 'active' : ''}`
