@@ -32,10 +32,6 @@ const StudentScheduleDetail = () => {
   if (isLoading) return <LoadingState message="Loading your examination..." />;
   if (error || !item) return <ErrorState message={error || "Schedule not found"} />;
 
-  const roomLabel = item.room
-    ? `${item.room.building || ""} ${item.room.roomNumber || ""}`.trim()
-    : "";
-
   return (
     <div className="animate-fade-in">
       <PageHeader
@@ -45,14 +41,17 @@ const StudentScheduleDetail = () => {
         badge={<StatusBadge status={item.status} />}
       />
       <div className="admin-panel-card phase1-detail">
+        <Line label="Examination" value={item.examination?.title} />
+        <Line label="Subject" value={item.subject?.name} />
         <Line label="Subject code" value={item.subject?.code} />
         <Line label="Date" value={item.date ? new Date(item.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : ""} />
         <Line label="Session" value={item.session?.name} />
         <Line label="Start time" value={item.session?.startTime} />
         <Line label="End time" value={item.session?.endTime} />
         <Line label="Reporting time" value={item.reportingTime || item.session?.reportingTime} />
+        <Line label="Room" value={item.room?.roomNumber} />
+        <Line label="Building" value={item.room?.building} />
         <Line label="Duration" value={item.duration ? `${item.duration} minutes` : ""} />
-        <Line label="Room / building" value={roomLabel} />
         <Line label="Instructions" value={item.examination?.instructions} />
       </div>
     </div>
