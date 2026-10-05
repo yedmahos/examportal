@@ -41,11 +41,22 @@ const EligibilityPreview = ({ loading, error, eligibility, ready, studentLabel }
     ["Registered", eligibility.registered, false],
     ["Blocked", eligibility.blocked, true],
   ];
-  const total = groups.reduce((sum, [, rows]) => sum + rows.length, 0);
+  const schedulable = eligibility.eligible.length + eligibility.registered.length;
 
   return (
     <div>
-      {total === 0 && <p className="phase1-counts">No eligibility records for this examination and subject.</p>}
+      <p className="phase1-counts">
+        Schedulable students: {schedulable}. Eligible {eligibility.eligible.length}. Registered {eligibility.registered.length}. Blocked {eligibility.blocked.length}.
+      </p>
+      {schedulable === 0 && (
+        <p className="phase1-counts">
+          No eligible students found for this examination and subject.
+          {eligibility.blocked.length
+            ? " Blocked students are listed with the reason they cannot sit this paper."
+            : " Enroll the batch and register students for this subject before scheduling it."}
+          {" "}A scheduled paper is not saved until at least one student is eligible or registered.
+        </p>
+      )}
       <div className="phase1-eligibility">
       {groups.map(([title, rows, showReason]) => (
         <section key={title} className="phase1-eligibility-group">
@@ -209,11 +220,18 @@ const SchedulesPage = () => {
     setEligibilityLoading(true);
     setEligibilityError("");
 
-    eligibilityService.list({
-      examination: form.examination,
-      subject: form.subject,
-      limit: 100,
-    }).then((response) => {
+    const loadEligibility = async () => {
+      if (canSave) {
+        await eligibilityService.calculate({
+          examination: form.examination,
+          subject: form.subject,
+        });
+      }
+      const response = await eligibilityService.list({
+        examination: form.examination,
+        subject: form.subject,
+        limit: 100,
+      });
       if (cancelled) return;
       const rows = response.data.items || [];
       setEligibility({
@@ -221,7 +239,9 @@ const SchedulesPage = () => {
         registered: rows.filter((row) => row.eligibilityStatus === "registered"),
         blocked: rows.filter((row) => row.eligibilityStatus === "blocked"),
       });
-    }).catch((err) => {
+    };
+
+    loadEligibility().catch((err) => {
       if (!cancelled) setEligibilityError(err.message || "Could not load eligibility");
     }).finally(() => {
       if (!cancelled) setEligibilityLoading(false);
@@ -230,7 +250,7 @@ const SchedulesPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [form.examination, form.subject]);
+  }, [form.examination, form.subject, canSave]);
 
   const payload = () => ({
     examination: form.examination,
@@ -348,7 +368,13 @@ const SchedulesPage = () => {
           </div>
           <div className="toolbar-selects-group">
             <Button type="button" variant="outline" onClick={checkConflicts}>Conflict check</Button>
-            <Button type="submit" isLoading={saving}>Save schedule</Button>
+            <Button
+              type="submit"
+              isLoading={saving}
+              disabled={form.status === "scheduled" && eligibility !== null && (eligibility.eligible.length + eligibility.registered.length) === 0}
+            >
+              Save schedule
+            </Button>
           </div>
           <EligibilityPreview
             loading={eligibilityLoading}

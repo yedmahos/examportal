@@ -109,7 +109,12 @@ export const sessionService = createResourceService("/sessions");
 export const subjectService = createResourceService("/subjects");
 export const enrollmentService = createResourceService("/enrollments");
 export const registrationService = createResourceService("/registrations");
-export const eligibilityService = createResourceService("/eligibility");
+export const eligibilityService = {
+  ...createResourceService("/eligibility"),
+  async calculate(body) {
+    return post("/eligibility/calculate", body);
+  },
+};
 export const scheduleService = createResourceService("/schedules");
 export const roomService = createResourceService("/rooms");
 

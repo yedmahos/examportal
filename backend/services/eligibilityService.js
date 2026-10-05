@@ -188,7 +188,13 @@ const eligibleStudentIds = async ({ examinationId, subjectId }) => {
     return records.map((record) => record.student);
 };
 
+const snapshotEligibleStudentIds = async ({ examinationId, subjectId }) => {
+    await calculateEligibility({ examinationId, subjectId });
+    return eligibleStudentIds({ examinationId, subjectId });
+};
+
 module.exports = {
     calculateEligibility,
-    eligibleStudentIds
+    eligibleStudentIds,
+    snapshotEligibleStudentIds
 };
