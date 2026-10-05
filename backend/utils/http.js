@@ -11,6 +11,12 @@ const invalidId = (res, label) => {
 };
 
 const handleError = (res, error, label) => {
+    if (error?.status >= 400 && error.status < 500) {
+        return res.status(error.status).json({
+            message: error.message
+        });
+    }
+
     if (error?.code === 11000) {
         return res.status(409).json({
             message: "A record with these details already exists"

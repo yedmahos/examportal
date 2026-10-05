@@ -10,6 +10,11 @@ const { logActivity } = require("../services/activityLogger");
 const { roleSatisfies } = require("../utils/roles");
 const { isObjectId, parseDateOnly, isTime } = require("../utils/http");
 const {
+    departmentScope,
+    assertDepartment,
+    applyNamedDepartmentScope
+} = require("../utils/departmentScope");
+const {
     parseSemester,
     escapeRegex,
     parsePagination,
@@ -354,6 +359,8 @@ const getAllExams = async (req, res) => {
             ];
         }
 
+        applyNamedDepartmentScope(query, await departmentScope(req));
+
         const { page, limit, skip } = parsePagination(req.query);
 
         const [exams, total] = await Promise.all([
@@ -372,6 +379,10 @@ const getAllExams = async (req, res) => {
         });
     } catch (error) {
         console.error("Get exams error:", error.message);
+
+        if (error.status) {
+            return res.status(error.status).json({ message: error.message });
+        }
 
         res.status(500).json({
             message: "Server error while fetching exams"
@@ -405,11 +416,24 @@ const getExamById = async (req, res) => {
             });
         }
 
+        const scope = await departmentScope(req);
+        if (scope) {
+            const ownsRef = exam.departmentRef && String(exam.departmentRef._id || exam.departmentRef) === String(scope._id);
+            const ownsName = exam.department === scope.name;
+            if (!ownsRef && !ownsName) {
+                assertDepartment(scope, null);
+            }
+        }
+
         res.status(200).json({
             exam
         });
     } catch (error) {
         console.error("Get exam error:", error.message);
+
+        if (error.status) {
+            return res.status(error.status).json({ message: error.message });
+        }
 
         res.status(500).json({
             message: "Server error while fetching exam"

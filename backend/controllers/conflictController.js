@@ -8,6 +8,7 @@ const {
     handleError,
     parseDateOnly
 } = require("../utils/http");
+const { departmentScope, assertDepartment } = require("../utils/departmentScope");
 
 const checkConflicts = async (req, res) => {
     try {
@@ -33,6 +34,14 @@ const checkConflicts = async (req, res) => {
         if (!examination) return res.status(404).json({ message: "Examination not found" });
         if (!subject) return res.status(404).json({ message: "Subject not found" });
         if (!session) return res.status(404).json({ message: "Session not found" });
+
+        assertDepartment(await departmentScope(req), subject.department);
+
+        if (subject.verificationStatus !== "verified") {
+            return res.status(400).json({
+                message: "Subject must be verified before it can be scheduled"
+            });
+        }
 
         if (req.body.room && !isObjectId(req.body.room)) {
             return res.status(400).json({ message: "Invalid room id" });

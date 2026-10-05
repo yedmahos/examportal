@@ -8,6 +8,17 @@ const {
     parsePagination,
     paginationMeta
 } = require("../utils/query");
+const {
+    departmentScope,
+    studentInDepartment,
+    applyStudentScope
+} = require("../utils/departmentScope");
+
+const outsideDepartment = (res) => {
+    return res.status(403).json({
+        message: "This record is outside your department"
+    });
+};
 
 const getAllStudents = async (req, res) => {
     try {
@@ -48,6 +59,8 @@ const getAllStudents = async (req, res) => {
             ];
         }
 
+        applyStudentScope(query, await departmentScope(req));
+
         const { page, limit, skip } = parsePagination(req.query);
 
         const [students, total] = await Promise.all([
@@ -65,6 +78,10 @@ const getAllStudents = async (req, res) => {
         });
     } catch (error) {
         console.error("Get students error:", error.message);
+
+        if (error.status) {
+            return res.status(error.status).json({ message: error.message });
+        }
 
         res.status(500).json({
             message: "Server error while fetching students"
@@ -91,6 +108,11 @@ const getStudentById = async (req, res) => {
             return res.status(404).json({
                 message: "Student not found"
             });
+        }
+
+        const scope = await departmentScope(req);
+        if (scope && !studentInDepartment(student, scope)) {
+            return outsideDepartment(res);
         }
 
         res.status(200).json({
@@ -249,6 +271,18 @@ const createStudent = async (req, res) => {
             12
         );
 
+        const scope = await departmentScope(req);
+        let departmentName = department ? department.trim() : undefined;
+        let departmentRef;
+
+        if (scope) {
+            if (departmentName && departmentName !== scope.name) {
+                return outsideDepartment(res);
+            }
+            departmentName = scope.name;
+            departmentRef = scope._id;
+        }
+
         const created = await User.create({
             name: name.trim(),
             email: normalizedEmail,
@@ -257,9 +291,8 @@ const createStudent = async (req, res) => {
             studentId: studentId
                 ? studentId.trim()
                 : undefined,
-            department: department
-                ? department.trim()
-                : undefined,
+            department: departmentName,
+            departmentRef,
             program: program
                 ? program.trim()
                 : undefined,
@@ -300,6 +333,10 @@ const createStudent = async (req, res) => {
             error.message
         );
 
+        if (error.status) {
+            return res.status(error.status).json({ message: error.message });
+        }
+
         if (error.code === 11000) {
             return res.status(409).json({
                 message:
@@ -339,6 +376,19 @@ const updateStudent = async (req, res) => {
             return res.status(404).json({
                 message: "Student not found"
             });
+        }
+
+        const scope = await departmentScope(req);
+        if (scope && !studentInDepartment(student, scope)) {
+            return outsideDepartment(res);
+        }
+
+        if (
+            scope &&
+            req.body.department !== undefined &&
+            String(req.body.department).trim() !== scope.name
+        ) {
+            return outsideDepartment(res);
         }
 
         const allowedFields = [
@@ -415,6 +465,10 @@ const updateStudent = async (req, res) => {
     } catch (error) {
         console.error("Update student error:", error.message);
 
+        if (error.status) {
+            return res.status(error.status).json({ message: error.message });
+        }
+
         if (error.code === 11000) {
             return res.status(409).json({
                 message: "Email or student ID already exists"
@@ -444,24 +498,26 @@ const updateStudentStatus = async (req, res) => {
             });
         }
 
-        const student = await User.findOneAndUpdate(
-            {
-                _id: id,
-                role: "student"
-            },
-            {
-                status
-            },
-            {
-                new: true
-            }
-        ).select("-password");
+        const existing = await User.findOne({
+            _id: id,
+            role: "student"
+        });
 
-        if (!student) {
+        if (!existing) {
             return res.status(404).json({
                 message: "Student not found"
             });
         }
+
+        const scope = await departmentScope(req);
+        if (scope && !studentInDepartment(existing, scope)) {
+            return outsideDepartment(res);
+        }
+
+        existing.status = status;
+        await existing.save();
+
+        const student = await User.findById(existing._id).select("-password");
 
         await logActivity({
             user: req.user.userId,
@@ -481,6 +537,10 @@ const updateStudentStatus = async (req, res) => {
             "Update student status error:",
             error.message
         );
+
+        if (error.status) {
+            return res.status(error.status).json({ message: error.message });
+        }
 
         res.status(500).json({
             message: "Server error while updating student status"

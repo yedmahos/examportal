@@ -94,6 +94,7 @@ const Sidebar = ({
     {
       groupTitle: 'Academic Management',
       items: [
+        { to: '/admin/faculty', label: 'Faculty', icon: User, roles: ['super_admin'] },
         { to: '/admin/students', label: 'Students', icon: Users, roles: ['admin', 'super_admin', 'department_admin', 'examination_cell'] },
         { to: '/admin/exams', label: 'Exam Notices', icon: Calendar, roles: ['admin', 'super_admin', 'examination_cell'] },
         { to: '/admin/results', label: 'Results', icon: Award, roles: ['admin', 'super_admin'] },

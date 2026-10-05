@@ -13,6 +13,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { canAccess } from '../../utils/roles';
 import { dashboardService } from '../../services/dashboardService';
 import StatCard from '../../components/common/StatCard';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -23,7 +24,7 @@ import ErrorState from '../../components/common/ErrorState';
 import './AdminPages.css';
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
+  const { role } = useAuth();
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -85,7 +86,7 @@ const AdminDashboard = () => {
           iconBg="#FEF3C7"
           title="Upcoming Papers"
           value={stats.upcomingExams}
-          caption="Pending Invigilation"
+          caption="Scheduled papers on or after today"
           delta={stats.upcomingDelta}
           deltaType="positive"
           to="/admin/exams?status=Scheduled"
@@ -97,7 +98,7 @@ const AdminDashboard = () => {
           iconBg="#DCFCE7"
           title="Completed Exams"
           value={stats.completedExams}
-          caption="Conducted & Sealed"
+          caption="Scheduled papers before today"
           delta={stats.completedDelta}
           deltaType="positive"
           to="/admin/exams?status=Completed"
@@ -161,7 +162,7 @@ const AdminDashboard = () => {
               <div>
                 <h3 className="admin-panel-title">Examination Sessions & Completion Trend</h3>
                 <p className="admin-panel-subtitle">
-                  Historical tracking of scheduled vs completed examination papers per term
+                  Scheduled papers by month, split into papers still ahead and papers already held
                 </p>
               </div>
             </div>
@@ -228,7 +229,7 @@ const AdminDashboard = () => {
           <div className="admin-quick-actions-card">
             <h4 className="quick-actions-title">Administrative Actions</h4>
             <div className="quick-actions-list">
-              <Link to="/admin/exams" className="quick-action-link">
+              {canAccess(role, ["super_admin", "examination_cell"]) && <Link to="/admin/exams" className="quick-action-link">
                 <div className="quick-action-icon text-primary bg-primary-light">
                   <Calendar size={16} />
                 </div>
@@ -237,9 +238,9 @@ const AdminDashboard = () => {
                   <span className="qa-sub">Configure timetable & venues</span>
                 </div>
                 <ArrowRight size={14} className="qa-arrow" />
-              </Link>
+              </Link>}
 
-              <Link to="/admin/results" className="quick-action-link">
+              {canAccess(role, ["super_admin"]) && <Link to="/admin/results" className="quick-action-link">
                 <div className="quick-action-icon text-success bg-success-light">
                   <Award size={16} />
                 </div>
@@ -248,9 +249,9 @@ const AdminDashboard = () => {
                   <span className="qa-sub">Input marks & release transcripts</span>
                 </div>
                 <ArrowRight size={14} className="qa-arrow" />
-              </Link>
+              </Link>}
 
-              <Link to="/admin/announcements" className="quick-action-link">
+              {canAccess(role, ["super_admin"]) && <Link to="/admin/announcements" className="quick-action-link">
                 <div className="quick-action-icon text-info bg-info-light">
                   <Megaphone size={16} />
                 </div>
@@ -259,9 +260,9 @@ const AdminDashboard = () => {
                   <span className="qa-sub">Broadcast to enrolled students</span>
                 </div>
                 <ArrowRight size={14} className="qa-arrow" />
-              </Link>
+              </Link>}
 
-              <Link to="/admin/students" className="quick-action-link">
+              {canAccess(role, ["super_admin", "department_admin", "examination_cell"]) && <Link to="/admin/students" className="quick-action-link">
                 <div className="quick-action-icon text-warning bg-warning-light">
                   <Users size={16} />
                 </div>
@@ -270,7 +271,7 @@ const AdminDashboard = () => {
                   <span className="qa-sub">Verify candidate credentials</span>
                 </div>
                 <ArrowRight size={14} className="qa-arrow" />
-              </Link>
+              </Link>}
             </div>
           </div>
         </div>

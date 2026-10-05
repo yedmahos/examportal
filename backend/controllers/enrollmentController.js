@@ -10,6 +10,12 @@ const {
     parseSemester
 } = require("../utils/query");
 const { isObjectId, invalidId, handleError } = require("../utils/http");
+const {
+    departmentScope,
+    assertDepartment,
+    ownedProgramIds,
+    restrictToIds
+} = require("../utils/departmentScope");
 
 const populateEnrollment = (query) => {
     return query
@@ -43,6 +49,7 @@ const createEnrollment = async (req, res) => {
             return res.status(404).json({ message: "Student not found" });
         }
         if (!program) return res.status(404).json({ message: "Program not found" });
+        assertDepartment(await departmentScope(req), program.department);
         if (!batch) return res.status(404).json({ message: "Batch not found" });
         if (!section) return res.status(404).json({ message: "Section not found" });
         if (!academicYear) return res.status(404).json({ message: "Academic year not found" });
@@ -106,6 +113,8 @@ const listEnrollments = async (req, res) => {
             query.status = req.query.status;
         }
 
+        restrictToIds(query, "program", await ownedProgramIds(await departmentScope(req)));
+
         const [items, total] = await Promise.all([
             populateEnrollment(
                 Enrollment.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit)
@@ -145,6 +154,10 @@ const updateEnrollment = async (req, res) => {
         if (!Object.keys(updates).length) {
             return res.status(400).json({ message: "No valid fields provided for update" });
         }
+
+        const current = await Enrollment.findById(req.params.id).populate("program", "department");
+        if (!current) return res.status(404).json({ message: "Enrollment not found" });
+        assertDepartment(await departmentScope(req), current.program?.department);
 
         const item = await populateEnrollment(
             Enrollment.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true })

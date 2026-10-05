@@ -4,8 +4,34 @@ const {
     protect,
     authorize
 } = require("../middleware/authMiddleware");
+const {
+    createFaculty,
+    listFaculty,
+    assignDepartment
+} = require("../controllers/facultyController");
 
 const router = express.Router();
+
+router.get(
+    "/faculty",
+    protect,
+    authorize("super_admin"),
+    listFaculty
+);
+
+router.post(
+    "/faculty",
+    protect,
+    authorize("super_admin"),
+    createFaculty
+);
+
+router.patch(
+    "/:id/department",
+    protect,
+    authorize("super_admin"),
+    assignDepartment
+);
 
 // Any authenticated user
 router.get("/me", protect, (req, res) => {

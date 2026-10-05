@@ -164,6 +164,8 @@ const getStudentDashboard = async (req, res) => {
 const getAdminDashboard = async (req, res) => {
     try {
         const now = new Date();
+        const startOfToday = new Date();
+        startOfToday.setUTCHours(0, 0, 0, 0);
 
         const [
             totalStudents,
@@ -187,15 +189,14 @@ const getAdminDashboard = async (req, res) => {
                 isArchived: false
             }),
 
-            Exam.countDocuments({
-                isArchived: false,
-                examDate: { $gte: now },
-                status: "scheduled"
+            Schedule.countDocuments({
+                status: "scheduled",
+                date: { $gte: startOfToday }
             }),
 
-            Exam.countDocuments({
-                isArchived: false,
-                status: "completed"
+            Schedule.countDocuments({
+                status: "scheduled",
+                date: { $lt: startOfToday }
             }),
 
             Result.countDocuments({
@@ -265,21 +266,21 @@ const getAdminDashboard = async (req, res) => {
             .sort({ examDate: 1 })
             .limit(5);
 
-        const examTrendsAggregation = await Exam.aggregate([
+        const examTrendsAggregation = await Schedule.aggregate([
             {
-                $match: { isArchived: false, examDate: { $ne: null } }
+                $match: { status: "scheduled", date: { $ne: null } }
             },
             {
                 $group: {
                     _id: {
-                        year: { $year: "$examDate" },
-                        month: { $month: "$examDate" }
+                        year: { $year: "$date" },
+                        month: { $month: "$date" }
                     },
                     scheduledCount: {
-                        $sum: { $cond: [{ $eq: ["$status", "scheduled"] }, 1, 0] }
+                        $sum: { $cond: [{ $gte: ["$date", startOfToday] }, 1, 0] }
                     },
                     completedCount: {
-                        $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] }
+                        $sum: { $cond: [{ $lt: ["$date", startOfToday] }, 1, 0] }
                     }
                 }
             },
