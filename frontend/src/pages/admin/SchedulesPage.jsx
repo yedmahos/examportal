@@ -19,6 +19,7 @@ import {
   eligibilityService,
   conflictService,
   roomAllocationService,
+  seatingService,
 } from "../../services/resourceService";
 import "./AdminPages.css";
 
@@ -81,6 +82,14 @@ const EligibilityPreview = ({ loading, error, eligibility, ready, studentLabel }
   );
 };
 
+const seatingRoomsActive = (view, roomView) => {
+  const rooms = view?.rooms || [];
+  if (rooms.some((room) => String(room.id || room.room) === String(roomView))) {
+    return String(roomView);
+  }
+  return String(rooms[0]?.id || rooms[0]?.room || "");
+};
+
 const emptyForm = () => ({
   examination: "",
   subject: "",
@@ -95,6 +104,7 @@ const emptyForm = () => ({
 const SchedulesPage = () => {
   const { role } = useAuth();
   const canSave = canAccess(role, ["examination_cell", "super_admin"]);
+  const canSeat = canAccess(role, ["examination_cell", "super_admin", "department_admin"]);
   const { showToast } = useToast();
   const [form, setForm] = useState(emptyForm());
   const [examinations, setExaminations] = useState([]);
@@ -113,6 +123,12 @@ const SchedulesPage = () => {
   const [allocationSchedule, setAllocationSchedule] = useState("");
   const [allocationPreview, setAllocationPreview] = useState(null);
   const [allocating, setAllocating] = useState(false);
+  const [seatingSchedule, setSeatingSchedule] = useState("");
+  const [seatingStrategy, setSeatingStrategy] = useState("ROLL_NUMBER");
+  const [seatingPreview, setSeatingPreview] = useState(null);
+  const [savedSeating, setSavedSeating] = useState(null);
+  const [seatingBusy, setSeatingBusy] = useState(false);
+  const [roomView, setRoomView] = useState("");
 
   const loadLists = async () => {
     const [examRes, sessionRes, roomRes] = await Promise.all([
@@ -330,6 +346,67 @@ const SchedulesPage = () => {
     }
   };
 
+  useEffect(() => {
+    if (!seatingSchedule) {
+      setSavedSeating(null);
+      setSeatingPreview(null);
+      return undefined;
+    }
+
+    let active = true;
+    seatingService.forSchedule(seatingSchedule)
+      .then((plan) => { if (active) setSavedSeating(plan); })
+      .catch(() => { if (active) setSavedSeating(null); });
+    return () => { active = false; };
+  }, [seatingSchedule]);
+
+  const seatingView = seatingPreview || savedSeating;
+  const seatingExists = Boolean(seatingPreview?.existing || savedSeating?.item);
+
+  const previewSeating = async () => {
+    if (!seatingSchedule) return;
+    setSeatingBusy(true);
+    try {
+      const response = await seatingService.preview(seatingSchedule, seatingStrategy);
+      setSeatingPreview(response);
+    } catch (err) {
+      setSeatingPreview(null);
+      showToast(err.message || "Seating preview failed", "error");
+    } finally {
+      setSeatingBusy(false);
+    }
+  };
+
+  const confirmSeating = async () => {
+    if (!seatingSchedule || !seatingPreview?.ok || seatingPreview.existing) return;
+    setSeatingBusy(true);
+    try {
+      const response = await seatingService.confirm(seatingSchedule, seatingStrategy);
+      setSeatingPreview(null);
+      setSavedSeating(response);
+      showToast(response.message || "Seating plan saved", "success");
+    } catch (err) {
+      showToast(err.message || "Seating plan was not saved", "error");
+    } finally {
+      setSeatingBusy(false);
+    }
+  };
+
+  const regenerateSeating = async () => {
+    if (!seatingSchedule || !seatingExists) return;
+    setSeatingBusy(true);
+    try {
+      const response = await seatingService.regenerate(seatingSchedule, seatingStrategy);
+      setSeatingPreview(null);
+      setSavedSeating(response);
+      showToast(response.message || "Seating plan regenerated", "success");
+    } catch (err) {
+      showToast(err.message || "Seating plan was not regenerated", "error");
+    } finally {
+      setSeatingBusy(false);
+    }
+  };
+
   const confirmAllocation = async () => {
     if (!allocationSchedule || !allocationPreview?.ok) return;
     setAllocating(true);
@@ -462,6 +539,102 @@ const SchedulesPage = () => {
               <p>Conflicts: {(allocationPreview.conflicts || []).length ? allocationPreview.conflicts.map((conflict) => conflict.message).join("; ") : "None"}</p>
               <p>Status: {allocationPreview.status || allocationPreview.message}</p>
             </div>
+          )}
+        </div>
+      )}
+      {canSeat && (
+        <div className="admin-panel-card phase1-form">
+          <FormField label="Generate Seating Plan" helperText="Seating uses the confirmed rooms and the schedule's eligible students. It does not allocate new rooms.">
+            <Select
+              value={seatingSchedule}
+              onChange={(e) => {
+                setSeatingSchedule(e.target.value);
+                setSeatingPreview(null);
+                setRoomView("");
+              }}
+              options={items.map((item) => ({
+                value: item.id,
+                label: `${item.examination?.title || "Examination"} · ${item.subject?.name || "Subject"} · ${item.date ? new Date(item.date).toLocaleDateString("en-GB") : "No date"}`,
+              }))}
+              placeholder="Select a saved schedule"
+            />
+          </FormField>
+          <FormField label="Strategy">
+            <Select
+              value={seatingStrategy}
+              onChange={(e) => setSeatingStrategy(e.target.value)}
+              options={[
+                { value: "ROLL_NUMBER", label: "Roll Number" },
+                { value: "RANDOM", label: "Random" },
+                { value: "SECTION", label: "Section" },
+                { value: "ALTERNATE", label: "Alternate" },
+                { value: "ANTI_COPY", label: "Anti-Copy" },
+              ]}
+              placeholder="Select strategy"
+            />
+          </FormField>
+          <div className="toolbar-selects-group">
+            <Button type="button" variant="outline" onClick={previewSeating} isLoading={seatingBusy} disabled={!seatingSchedule}>
+              Generate Seating Plan
+            </Button>
+            <Button type="button" onClick={confirmSeating} disabled={!seatingPreview?.ok || seatingPreview.existing || seatingBusy}>
+              Confirm seating
+            </Button>
+            <Button type="button" variant="outline" onClick={regenerateSeating} disabled={!seatingExists || seatingBusy}>
+              Regenerate
+            </Button>
+          </div>
+          {(seatingPreview || savedSeating) && (
+            <div className="phase1-counts">
+              <p>{seatingPreview?.message || (savedSeating ? "Seating plan already exists." : "")}</p>
+              <p>Total Students: {seatingView?.students ?? 0}</p>
+              <p>Rooms: {(seatingView?.rooms || []).length}</p>
+              <p>Seats Assigned: {seatingView?.seatsAssigned ?? 0}</p>
+              {(seatingView?.rooms || []).map((room) => (
+                <p key={room.id || room.room}>{room.label}: {room.assigned} / {room.quota}</p>
+              ))}
+              {(seatingView?.limitations || []).map((limitation) => (
+                <p key={limitation}>{limitation}</p>
+              ))}
+            </div>
+          )}
+          {seatingView?.rows?.length > 0 && (
+            <>
+              <DataTable
+                data={seatingView.rows}
+                emptyTitle="No seats"
+                emptyDescription="Generate a seating plan to preview seats."
+                columns={[
+                  { title: "Student", key: "student" },
+                  { title: "Roll No", key: "rollNumber" },
+                  { title: "Section", key: "section", render: (value) => value || "—" },
+                  { title: "Room", key: "room" },
+                  { title: "Seat", key: "seat" },
+                ]}
+              />
+              <FormField label="Room view">
+                <Select
+                  value={seatingRoomsActive(seatingView, roomView)}
+                  onChange={(e) => setRoomView(e.target.value)}
+                  options={(seatingView.rooms || []).map((room) => ({
+                    value: String(room.id || room.room),
+                    label: room.label,
+                  }))}
+                  placeholder="Select room"
+                />
+              </FormField>
+              <DataTable
+                data={(seatingView.rows || []).filter((row) => String(row.roomId) === seatingRoomsActive(seatingView, roomView))}
+                emptyTitle="No seats in this room"
+                emptyDescription="This room has no assigned seats."
+                columns={[
+                  { title: "Seat", key: "seat" },
+                  { title: "Student", key: "student" },
+                  { title: "Roll No", key: "rollNumber" },
+                  { title: "Section", key: "section", render: (value) => value || "—" },
+                ]}
+              />
+            </>
           )}
         </div>
       )}
