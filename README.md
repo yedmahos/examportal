@@ -3,6 +3,8 @@
 A modern, standalone React frontend for an institutional **Exam Management and Information Portal**, inspired by the Enlight academic design language.
 
 > **Note**: This application is strictly an **informational and scheduling portal** (exam dates, halls, seat allocations, official instructions, grade results, notifications, student dossiers). It deliberately contains no online test-taking, question banks, or timed attempt engines.
+>
+> Students can download a personalized PDF hall ticket from a published examination schedule after seat allocation is published.
 
 ---
 

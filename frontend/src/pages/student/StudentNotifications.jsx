@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, CheckCheck, Trash2, Filter } from 'lucide-react';
 import { notificationService } from '../../services/notificationService';
 import PageHeader from '../../components/common/PageHeader';
 import Tabs from '../../components/common/Tabs';
 import Button from '../../components/common/Button';
-import NotificationItem from '../../components/notifications/NotificationItem';
+import NotificationItem, { scheduleReferenceId } from '../../components/notifications/NotificationItem';
 import LoadingState from '../../components/common/LoadingState';
 import EmptyState from '../../components/common/EmptyState';
 import { useToast } from '../../components/common/Toast';
@@ -16,6 +17,7 @@ const StudentNotifications = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [unreadOnly, setUnreadOnly] = useState(false);
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const tabs = [
     { id: 'All', label: 'All Updates' },
@@ -69,6 +71,14 @@ const StudentNotifications = () => {
 
   const handleOpenAttachment = (attachment) => {
     showToast(`Accessing file: ${attachment.name}`, 'info');
+  };
+
+  const handleViewExamination = (notification) => {
+    const referenceId = scheduleReferenceId(notification);
+    if (!referenceId) return;
+    const id = notification.id || notification._id;
+    if (!notification.isRead && id) handleMarkAsRead(id);
+    navigate(`/exams/schedule/${referenceId}`);
   };
 
   return (
@@ -128,6 +138,7 @@ const StudentNotifications = () => {
                 notification={notif}
                 onMarkAsRead={handleMarkAsRead}
                 onOpenAttachment={handleOpenAttachment}
+                onViewExamination={handleViewExamination}
               />
             ))}
           </div>

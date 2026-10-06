@@ -2,10 +2,28 @@ import React from 'react';
 import { FileText, Download, ExternalLink, Calendar, Award, BellRing, Megaphone, AlertTriangle } from 'lucide-react';
 import './Notification.css';
 
+const SCHEDULE_EXAM_TITLES = new Set([
+  'Examination Schedule Published',
+  'Examination Rescheduled',
+  'Examination Room Changed',
+  'Seat Allocation Published',
+  'Seat Allocation Updated',
+  'Examination Cancelled',
+  'Examination Postponed',
+]);
+
+export const scheduleReferenceId = (notification) => {
+  if (!notification || String(notification.type || '').toLowerCase() !== 'exam') return '';
+  if (!SCHEDULE_EXAM_TITLES.has(String(notification.title || ''))) return '';
+  if (!notification.referenceId) return '';
+  return String(notification.referenceId);
+};
+
 const NotificationItem = ({
   notification,
   onMarkAsRead,
   onOpenAttachment,
+  onViewExamination,
   compact = false,
 }) => {
   const {
@@ -20,6 +38,8 @@ const NotificationItem = ({
     attachment,
     type,
   } = notification;
+
+  const scheduleId = scheduleReferenceId(notification);
 
   const displayTime = createdAt
     ? new Date(createdAt).toLocaleDateString('en-GB', {
@@ -61,7 +81,13 @@ const NotificationItem = ({
   return (
     <div
       className={`notif-item-wrapper ${!isRead ? 'unread' : ''} ${compact ? 'compact' : ''}`}
-      onClick={() => !isRead && onMarkAsRead && onMarkAsRead(id)}
+      onClick={() => {
+        if (scheduleId && onViewExamination) {
+          onViewExamination(notification);
+          return;
+        }
+        if (!isRead && onMarkAsRead) onMarkAsRead(id);
+      }}
     >
       <div className="notif-item-avatar-col">
         <div className="notif-type-icon-chip">
@@ -80,6 +106,19 @@ const NotificationItem = ({
         <div className="notif-item-time-line">
           {displayTime}
         </div>
+
+        {scheduleId && onViewExamination && (
+          <button
+            type="button"
+            className="notif-view-exam-btn"
+            onClick={(event) => {
+              event.stopPropagation();
+              onViewExamination(notification);
+            }}
+          >
+            View Examination
+          </button>
+        )}
 
         {attachment && (
           <div
