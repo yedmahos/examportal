@@ -157,6 +157,7 @@
 .notif-action-text {
   font-weight: 400;
   color: var(--color-text-secondary);
+  white-space: pre-line;
 }
 
 .notif-unread-dot {

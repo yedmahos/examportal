@@ -14,6 +14,7 @@ const Room = require("../models/Room");
 const RoomAllocation = require("../models/RoomAllocation");
 const SeatingPlan = require("../models/SeatingPlan");
 const SeatAllocation = require("../models/SeatAllocation");
+const { notifySeatingPublished } = require("./notificationEvents");
 
 const STRATEGIES = ["ROLL_NUMBER", "RANDOM", "SECTION", "ALTERNATE", "ANTI_COPY"];
 const COLUMNS = 5;
@@ -480,6 +481,10 @@ const saveSeating = async (schedule, strategy, userId, regenerate) => {
         throw fail(404, "No seating plan exists to regenerate.");
     }
 
+    const previousSeats = existing
+        ? await SeatAllocation.find({ seatingPlan: existing._id }).select("student room seatNumber").lean()
+        : [];
+
     const latest = await SeatingPlan.findOne({ schedule: schedule._id }).sort({ version: -1 }).select("version");
     const version = (latest?.version || 0) + 1;
     let plan = null;
@@ -518,6 +523,16 @@ const saveSeating = async (schedule, strategy, userId, regenerate) => {
 
         plan.status = "published";
         await plan.save();
+
+        try {
+            await notifySeatingPublished({
+                schedule,
+                assignments: arrangement.assignments,
+                previousSeats
+            });
+        } catch (error) {
+            console.error("Seating notification failed:", error.message);
+        }
     } catch (error) {
         if (plan) {
             await SeatAllocation.deleteMany({ seatingPlan: plan._id });

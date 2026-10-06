@@ -118,7 +118,7 @@ const StudentNotifications = () => {
           <EmptyState
             icon={Bell}
             title="No notifications"
-            description="You are all caught up! No recent circulars or updates in this category."
+            description="Notifications created for your account will appear here."
           />
         ) : (
           <div className="notifications-container">

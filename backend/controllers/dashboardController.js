@@ -7,6 +7,7 @@ const ActivityLog = require("../models/ActivityLog");
 const Subject = require("../models/Subject");
 const Room = require("../models/Room");
 const Schedule = require("../models/Schedule");
+require("../models/ExamType");
 
 // Get student dashboard
 const getStudentDashboard = async (req, res) => {
@@ -30,7 +31,11 @@ const getStudentDashboard = async (req, res) => {
             status: "scheduled",
             date: { $gte: today }
         })
-            .populate("examination", "title instructions")
+            .populate({
+                path: "examination",
+                select: "title instructions examType",
+                populate: { path: "examType", select: "name" }
+            })
             .populate("subject", "code name")
             .populate("session", "name reportingTime startTime endTime")
             .populate("room", "roomNumber building floor")
@@ -41,6 +46,7 @@ const getStudentDashboard = async (req, res) => {
             _id: schedule._id,
             subject: schedule.subject?.name || null,
             title: schedule.examination?.title || null,
+            examType: schedule.examination?.examType?.name || null,
             examCode: schedule.subject?.code || null,
             examDate: schedule.date,
             startTime: schedule.session?.startTime || null,

@@ -27,6 +27,42 @@ const {
     ownedSubjectIds,
     restrictToIds
 } = require("../utils/departmentScope");
+const {
+    notifySchedulePublished,
+    notifyRoomChanged,
+    notifyRescheduled
+} = require("../services/notificationEvents");
+
+const idOf = (value) => (value ? String(value._id || value) : "");
+
+const notifyScheduleChange = async ({ previous, next, students, newcomers, staying }) => {
+    try {
+        if (next.status !== "scheduled") return;
+
+        if (!previous || previous.status !== "scheduled") {
+            await notifySchedulePublished(next, students);
+            return;
+        }
+
+        if (newcomers.length) {
+            await notifySchedulePublished(next, newcomers);
+        }
+
+        const dateChanged = previous.dateKey !== (next.date ? new Date(next.date).toISOString().slice(0, 10) : "");
+        const sessionChanged = previous.sessionId !== idOf(next.session);
+        const roomChanged = previous.roomId !== idOf(next.room);
+
+        if (dateChanged || sessionChanged) {
+            await notifyRescheduled(next, staying);
+        }
+
+        if (roomChanged) {
+            await notifyRoomChanged(next, staying, previous.room, next.room);
+        }
+    } catch (error) {
+        console.error("Schedule notification failed:", error.message);
+    }
+};
 
 const withAllocations = async (items) => {
     const rows = await RoomAllocation.find({
@@ -217,6 +253,14 @@ const createSchedule = async (req, res) => {
 
         const item = await populateSchedule(Schedule.findById(created._id));
 
+        await notifyScheduleChange({
+            previous: null,
+            next: item,
+            students: item.eligibleStudents || [],
+            newcomers: [],
+            staying: []
+        });
+
         res.status(201).json({
             message: "Schedule saved",
             item,
@@ -308,6 +352,15 @@ const updateSchedule = async (req, res) => {
 
         if (!current) return res.status(404).json({ message: "Schedule not found" });
 
+        const previousStudents = new Set((current.eligibleStudents || []).map((studentId) => String(studentId)));
+        const previous = {
+            status: current.status,
+            dateKey: current.date ? new Date(current.date).toISOString().slice(0, 10) : "",
+            sessionId: idOf(current.session),
+            roomId: idOf(current.room),
+            room: current.room ? await Room.findById(current.room).select("roomNumber building") : null
+        };
+
         const input = await loadScheduleInput({
             examination: req.body.examination || current.examination,
             subject: req.body.subject || current.subject,
@@ -341,6 +394,15 @@ const updateSchedule = async (req, res) => {
         await current.save();
 
         const item = await populateSchedule(Schedule.findById(current._id));
+        const nextStudents = (item.eligibleStudents || []).map((studentId) => String(studentId));
+
+        await notifyScheduleChange({
+            previous,
+            next: item,
+            students: nextStudents,
+            newcomers: nextStudents.filter((studentId) => !previousStudents.has(studentId)),
+            staying: nextStudents.filter((studentId) => previousStudents.has(studentId))
+        });
 
         res.status(200).json({
             message: "Schedule updated",

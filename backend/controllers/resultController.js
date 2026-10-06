@@ -3,6 +3,7 @@ const Result = require("../models/Result");
 const User = require("../models/User");
 const Exam = require("../models/Exam");
 const { logActivity } = require("../services/activityLogger");
+const { notifyResultPublished } = require("../services/notificationEvents");
 const {
     parseSemester,
     escapeRegex,
@@ -462,6 +463,8 @@ const updateResult = async (req, res) => {
         result.grade = calculateGrade(percentage);
         result.status = calculateStatus(percentage);
 
+        const wasPublished = result.published === true;
+
         if (req.body.published !== undefined) {
             result.published = req.body.published;
 
@@ -478,6 +481,14 @@ const updateResult = async (req, res) => {
         }
 
         await result.save();
+
+        if (result.published === true && !wasPublished) {
+            try {
+                await notifyResultPublished(result);
+            } catch (error) {
+                console.error("Result notification failed:", error.message);
+            }
+        }
 
         await logActivity({
             user: req.user.userId,
@@ -528,6 +539,15 @@ const publishResult = async (req, res) => {
             });
         }
 
+        const existing = await Result.findById(id).select("published");
+
+        if (!existing) {
+            return res.status(404).json({
+                message: "Result not found"
+            });
+        }
+
+        const wasPublished = existing.published === true;
         const result = await Result.findByIdAndUpdate(
             id,
             {
@@ -561,6 +581,14 @@ const publishResult = async (req, res) => {
             description: "Published result",
             ipAddress: req.ip
         });
+
+        if (!wasPublished) {
+            try {
+                await notifyResultPublished(result);
+            } catch (error) {
+                console.error("Result notification failed:", error.message);
+            }
+        }
 
         res.status(200).json({
             message: "Result published successfully",
