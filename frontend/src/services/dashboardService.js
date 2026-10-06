@@ -64,7 +64,27 @@ const normalizeStudentDashboard = (response) => {
     recentAnnouncements:
       Array.isArray(payload?.announcements)
         ? payload.announcements.map(withExamId)
-        : []
+        : [],
+
+    notifications: Array.isArray(payload?.notifications)
+      ? payload.notifications.map((item) => ({
+          id: String(item.id || item._id || ""),
+          title: item.title || "Examination update",
+          message: item.message || "",
+          createdAt: item.createdAt || null,
+          type: item.type || "",
+        }))
+      : [],
+
+    performance: {
+      totalResults: Number(payload?.performance?.totalResults) || 0,
+      averagePercentage:
+        typeof payload?.performance?.averagePercentage === "number"
+          ? payload.performance.averagePercentage
+          : null,
+      passed: Number(payload?.performance?.passed) || 0,
+      failed: Number(payload?.performance?.failed) || 0,
+    },
   };
 };
 

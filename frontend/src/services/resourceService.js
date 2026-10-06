@@ -138,6 +138,10 @@ export const seatingService = {
   async mine(scheduleId) {
     return get(`/seating-plans/student/me?schedule=${scheduleId}`);
   },
+
+  async listMine() {
+    return get("/seating-plans/student/me");
+  },
 };
 
 export const roomAllocationService = {

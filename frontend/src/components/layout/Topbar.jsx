@@ -63,7 +63,7 @@ const Topbar = ({ onOpenMobileMenu }) => {
   const getContextualTitle = () => {
     const path = location.pathname;
     if (path === '/dashboard' || path.endsWith('/dashboard')) {
-      return `Welcome back, ${user?.name || 'there'}`;
+      return 'Exam Management Portal';
     }
     if (path.startsWith('/exams') || path.endsWith('/schedule')) return 'Schedule';
     if (path.startsWith('/results') || path.endsWith('/results')) return 'Results';
@@ -160,7 +160,6 @@ const Topbar = ({ onOpenMobileMenu }) => {
           <div className="topbar-profile-anchor" ref={profileMenuRef}>
             <div className="topbar-identity">
               <span className="topbar-identity-name">{user?.name || 'N/A'}</span>
-              <span className="topbar-identity-email">{user?.email || 'N/A'}</span>
             </div>
             <button
               type="button"
