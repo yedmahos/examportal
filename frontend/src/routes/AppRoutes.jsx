@@ -46,6 +46,9 @@ import RoomDetailPage from '../pages/admin/RoomDetailPage';
 import FacultyPage from '../pages/admin/FacultyPage';
 import FacultyNote from '../pages/faculty/FacultyNote';
 import FacultyDashboard from '../pages/faculty/FacultyDashboard';
+import DepartmentAdminDashboard from '../pages/department/DepartmentAdminDashboard';
+import ExaminationCellDashboard from '../pages/examination/ExaminationCellDashboard';
+import SuperAdminDashboard from '../pages/superadmin/SuperAdminDashboard';
 import StudentScheduleDetail from '../pages/student/StudentScheduleDetail';
 
 // Common
@@ -147,7 +150,7 @@ const AppRoutes = () => {
         <Route path="/faculty/schedule" element={<RoleGate roles={["faculty"]}><FacultyNote title="My Schedule" message="Assigned schedules will appear here when duties are published." /></RoleGate>} />
         <Route path="/faculty/notifications" element={<RoleGate roles={["faculty"]}><StudentNotifications /></RoleGate>} />
         <Route path="/faculty/profile" element={<RoleGate roles={["faculty"]}><AdminProfile /></RoleGate>} />
-        <Route path="/department-admin/dashboard" element={<RoleGate roles={["department_admin"]}><AdminDashboard /></RoleGate>} />
+        <Route path="/department-admin/dashboard" element={<RoleGate roles={["department_admin"]}><DepartmentAdminDashboard /></RoleGate>} />
         <Route path="/department-admin/students" element={<RoleGate roles={["department_admin"]}><AdminStudents /></RoleGate>} />
         <Route path="/department-admin/subjects" element={<RoleGate roles={["department_admin"]}><SubjectsPage /></RoleGate>} />
         <Route path="/department-admin/batches" element={<RoleGate roles={["department_admin"]}><StructurePage resource="batches" /></RoleGate>} />
@@ -156,7 +159,7 @@ const AppRoutes = () => {
         <Route path="/department-admin/schedules" element={<RoleGate roles={["department_admin"]}><SchedulesPage /></RoleGate>} />
         <Route path="/department-admin/notifications" element={<RoleGate roles={["department_admin"]}><StudentNotifications /></RoleGate>} />
         <Route path="/department-admin/profile" element={<RoleGate roles={["department_admin"]}><AdminProfile /></RoleGate>} />
-        <Route path="/examination-cell/dashboard" element={<RoleGate roles={["examination_cell"]}><AdminDashboard /></RoleGate>} />
+        <Route path="/examination-cell/dashboard" element={<RoleGate roles={["examination_cell"]}><ExaminationCellDashboard /></RoleGate>} />
         <Route path="/examination-cell/structure" element={<RoleGate roles={["examination_cell"]}><StructurePage resource="departments" /></RoleGate>} />
         <Route path="/examination-cell/examinations" element={<RoleGate roles={["examination_cell"]}><ExaminationsPage /></RoleGate>} />
         <Route path="/examination-cell/subjects" element={<RoleGate roles={["examination_cell"]}><SubjectsPage /></RoleGate>} />
@@ -165,7 +168,7 @@ const AppRoutes = () => {
         <Route path="/examination-cell/rooms" element={<RoleGate roles={["examination_cell"]}><RoomsPage /></RoleGate>} />
         <Route path="/examination-cell/notifications" element={<RoleGate roles={["examination_cell"]}><StudentNotifications /></RoleGate>} />
         <Route path="/examination-cell/profile" element={<RoleGate roles={["examination_cell"]}><AdminProfile /></RoleGate>} />
-        <Route path="/super-admin/dashboard" element={<RoleGate roles={["super_admin"]}><AdminDashboard /></RoleGate>} />
+        <Route path="/super-admin/dashboard" element={<RoleGate roles={["super_admin"]}><SuperAdminDashboard /></RoleGate>} />
         <Route path="/super-admin/users" element={<RoleGate roles={["super_admin"]}><FacultyPage /></RoleGate>} />
         <Route path="/super-admin/departments" element={<RoleGate roles={["super_admin"]}><StructurePage resource="departments" /></RoleGate>} />
         <Route path="/super-admin/configuration" element={<RoleGate roles={["super_admin"]}><StructurePage resource="academicYears" /></RoleGate>} />

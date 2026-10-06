@@ -1,262 +1,206 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { Award, BookOpen, Calendar, Bell } from "lucide-react";
+import { dashboardService } from "../../services/dashboardService";
+import { seatingService } from "../../services/resourceService";
+import StatCard from "../../components/common/StatCard";
+import LoadingState from "../../components/common/LoadingState";
+import ErrorState from "../../components/common/ErrorState";
 import {
-  Tag,
-  TrendingUp,
-  Calendar,
-  ExternalLink,
-  ChevronDown,
-  Award,
-  BookOpen,
-  Bell,
-  ArrowRight
-} from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { roleLabel } from '../../utils/roles';
-import { dashboardService } from '../../services/dashboardService';
-import StatCard from '../../components/common/StatCard';
-import Card from '../../components/common/Card';
-import StatusBadge from '../../components/common/StatusBadge';
-import PerformanceChart from '../../components/dashboard/PerformanceChart';
-import ScheduleRightRail from '../../components/dashboard/ScheduleRightRail';
-import LoadingState from '../../components/common/LoadingState';
-import ErrorState from '../../components/common/ErrorState';
-import './StudentPages.css';
+  DashboardShell,
+  Panel,
+  Facts,
+  Split,
+  UpdateList,
+  PaperList,
+  TextLink,
+  formatWhen,
+} from "../../components/dashboard/RoleSections";
+
+const ROOM_MISSING = "Room not assigned yet";
+const SEAT_MISSING = "Seat not published yet";
+
+const sameDay = (left, right) => {
+  if (!left || !right) return false;
+  const a = new Date(left);
+  const b = new Date(right);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return false;
+  return a.getUTCFullYear() === b.getUTCFullYear()
+    && a.getUTCMonth() === b.getUTCMonth()
+    && a.getUTCDate() === b.getUTCDate();
+};
+
+const matchSeat = (exam, seats) => seats.find((seat) => (
+  seat.subject
+  && exam.subject
+  && seat.subject === exam.subject
+  && sameDay(seat.date, exam.examDate)
+));
+
+const timeRange = (exam) => {
+  if (exam.startTime && exam.endTime) return `${exam.startTime} – ${exam.endTime}`;
+  return exam.startTime || exam.endTime || "";
+};
+
+const paperFromExam = (exam, seats) => {
+  const seat = matchSeat(exam, seats);
+  const room = seat?.room || exam.room || ROOM_MISSING;
+  const building = seat?.building || exam.venue || "";
+
+  return {
+    id: exam.id || exam._id,
+    title: exam.subject || exam.title || "Examination",
+    meta: exam.title && exam.subject ? exam.title : "",
+    status: exam.status,
+    rows: [
+      { label: "Examination", value: exam.title },
+      { label: "Subject", value: exam.subject },
+      { label: "Date", value: formatWhen(exam.examDate) },
+      { label: "Time", value: timeRange(exam) },
+      { label: "Reporting time", value: exam.reportingTime },
+      { label: "Building", value: building },
+      { label: "Room", value: room },
+      { label: "Seat", value: seat?.seatNumber || SEAT_MISSING },
+    ],
+  };
+};
 
 const StudentDashboard = () => {
-  const { user } = useAuth();
   const [data, setData] = useState(null);
+  const [seats, setSeats] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [chartSemester, setChartSemester] = useState('All');
+  const [error, setError] = useState("");
 
-  const fetchDashboardData = async () => {
+  const load = async () => {
     setIsLoading(true);
-    setError(null);
+    setError("");
     try {
-      const res = await dashboardService.getStudentDashboard(user?.id);
-      setData(res.data);
+      const [dashboardResult, seatResult] = await Promise.allSettled([
+        dashboardService.getStudentDashboard(),
+        seatingService.listMine(),
+      ]);
+
+      if (dashboardResult.status === "rejected") {
+        throw dashboardResult.reason;
+      }
+
+      setData(dashboardResult.value.data);
+      const seatItems = seatResult.status === "fulfilled"
+        ? seatResult.value.items || seatResult.value.data?.items || []
+        : [];
+      setSeats(Array.isArray(seatItems) ? seatItems : []);
     } catch (err) {
-      console.error('Failed to load student dashboard:', err);
-      setError(err.message || 'Unable to load dashboard data');
+      setError(err.message || "Unable to load the student dashboard");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchDashboardData();
-  }, [user?.id]);
+    load();
+  }, []);
 
-  if (isLoading) {
-    return <LoadingState message="Loading your academic dashboard..." />;
-  }
+  if (isLoading) return <LoadingState message="Loading student dashboard..." />;
+  if (error || !data) return <ErrorState message={error || "Unable to load the student dashboard"} onRetry={load} />;
 
-  if (error) {
-    return <ErrorState message={error} onRetry={fetchDashboardData} />;
-  }
+  const upcoming = Array.isArray(data.upcomingExams) ? data.upcomingExams : [];
+  const nextExam = upcoming[0] || null;
+  const results = Array.isArray(data.recentResults) ? data.recentResults : [];
+  const performance = data.performance || { totalResults: 0 };
+  const updates = [
+    ...(data.notifications || []).map((item) => ({
+      id: `notice-${item.id}`,
+      title: item.title,
+      body: item.message && item.message !== item.title ? item.message : "",
+      when: formatWhen(item.createdAt),
+    })),
+    ...(data.recentAnnouncements || []).map((item) => ({
+      id: `announcement-${item.id || item._id}`,
+      title: item.title || "Announcement",
+      body: item.content || "",
+      when: formatWhen(item.publishDate),
+    })),
+  ].slice(0, 6);
 
-  const { summary, upcomingExams, recentResults, performanceHistory, recentAnnouncements } = data;
+  const resultPapers = results.map((result) => {
+    const exam = result.exam || {};
+    const marks = result.marksObtained !== undefined && result.marksObtained !== null
+      ? `${result.marksObtained}${result.maximumMarks ? ` / ${result.maximumMarks}` : ""}`
+      : "";
+
+    return {
+      id: result.id || result._id,
+      title: exam.subject || exam.title || "Result",
+      meta: exam.title && exam.subject ? exam.title : "",
+      status: result.published ? "published" : result.status,
+      rows: [
+        { label: "Examination", value: exam.title },
+        { label: "Subject", value: exam.subject },
+        { label: "Marks", value: marks },
+        { label: "Percentage", value: result.percentage !== undefined && result.percentage !== null ? `${result.percentage}%` : "" },
+        { label: "Grade", value: result.grade },
+        { label: "Published", value: result.published ? "Published" : "" },
+      ],
+    };
+  });
 
   return (
-    <div className="student-dashboard-page animate-fade-in">
-      <Card title={`${roleLabel(user?.role)} dashboard`} subtitle={`${user?.name || 'N/A'} · ${user?.email || 'N/A'}`}>
-        <p>Role: {roleLabel(user?.role)}</p>
-      </Card>
-      {/* 3 Summary Stat Cards matching Enlight reference */}
-      <div className="dashboard-stats-grid">
-        <StatCard
-          icon={Tag}
-          iconColor="#6C5DD3"
-          iconBg="#EFEBFC"
-          title="Credits Completed"
-          value={summary.creditsCompleted}
-          subValue={summary.totalCredits}
-          caption="Compared To Last Semester"
-          delta={summary.creditsDelta}
-          deltaType="positive"
-          to="/results"
+    <DashboardShell title="Student Dashboard">
+      <Panel
+        title="Next Examination"
+        action={nextExam ? <TextLink to={`/exams/schedule/${nextExam.id || nextExam._id}`}>Open schedule</TextLink> : null}
+      >
+        {nextExam ? (
+          <>
+            <Facts rows={[
+              ...paperFromExam(nextExam, seats).rows,
+              { label: "Instructions", value: nextExam.instructions },
+            ]} />
+          </>
+        ) : (
+          <UpdateList items={[]} emptyTitle="No upcoming examinations" emptyDescription="Your next examination will appear here when a schedule is published for you." />
+        )}
+      </Panel>
+
+      <Panel title="Upcoming Examinations" action={<TextLink to="/exams">View schedule</TextLink>}>
+        <PaperList
+          papers={upcoming.map((exam) => paperFromExam(exam, seats))}
+          emptyTitle="No upcoming examinations"
+          emptyDescription="Examinations you are eligible for will appear here."
         />
+      </Panel>
 
-        <StatCard
-          icon={TrendingUp}
-          iconColor="#FF6B81"
-          iconBg="#FFEBF0"
-          title="Grade Point Average"
-          value={typeof summary.gpa === 'number' ? summary.gpa.toFixed(2) : summary.gpa}
-          subValue={typeof summary.maxGpa === 'number' ? summary.maxGpa.toFixed(2) : summary.maxGpa}
-          caption="Compared To Last Semester"
-          delta={summary.gpaDelta}
-          deltaType="negative"
-          to="/results"
-        />
-
-        <StatCard
-          icon={BookOpen}
-          iconColor="#22C55E"
-          iconBg="#DCFCE7"
-          title="Active Examination Papers"
-          value={upcomingExams.length}
-          subValue={summary.totalEnrolledCourses}
-          caption="Active Courses This Semester"
-          delta={null}
-          to="/exams"
-        />
-      </div>
-
-      {/* Main Content Layout: 70% Left Analytics & Results, 30% Right Schedule Rail */}
-      <div className="dashboard-main-split">
-        {/* Left Column */}
-        <div className="dashboard-left-column">
-          {/* Main Analytical Panel: Grade Point Average Chart */}
-          <div className="dashboard-chart-card">
-            <div className="chart-card-header">
-              <div className="chart-card-title-group">
-                <h3 className="chart-main-title">Grade Point Average</h3>
-                <p className="chart-main-subtitle">
-                  Comparison between your GPA and Average Student GPA across semesters
-                </p>
-              </div>
-              <div className="chart-filter-select-wrap">
-                <select
-                  value={chartSemester}
-                  onChange={(e) => setChartSemester(e.target.value)}
-                  className="chart-filter-select"
-                >
-                  <option value="All">All Semesters</option>
-                  <option value="2025">2025 - 2026</option>
-                  <option value="2024">2024 - 2025</option>
-                </select>
-                <ChevronDown size={14} className="select-icon" />
-              </div>
-            </div>
-
-            <PerformanceChart data={performanceHistory} />
-          </div>
-
-          {/* Secondary Panel: Recent Results Table (matching Enlight tuition table style) */}
-          <div className="dashboard-table-card">
-            <div className="table-card-header">
-              <div>
-                <h3 className="table-card-title">Recent Examination Results</h3>
-                <p className="table-card-subtitle">
-                  Official verified marks and performance transcript for current term
-                </p>
-              </div>
-              <Link to="/results" className="table-view-all-link">
-                <span>View All Results</span>
-                <ArrowRight size={14} />
-              </Link>
-            </div>
-
-            <div className="table-responsive">
-              <table className="enlight-styled-table">
-                <thead>
-                  <tr>
-                    <th>Exam ID</th>
-                    <th>Subject & Title</th>
-                    <th>Exam Date</th>
-                    <th>Score / Grade</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: 'center' }}>Detail</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentResults.map((res) => (
-                    <tr key={res.id || res._id}>
-                      <td className="table-id-cell">{res.exam?.examCode || 'N/A'}</td>
-                      <td>
-                        <div className="table-subject-cell">
-                          <span className="subject-title">{res.exam?.subject || 'N/A'}</span>
-                          <span className="exam-full-name">{res.exam?.title || 'N/A'}</span>
-                        </div>
-                      </td>
-                      <td className="table-date-cell">
-                        {res.exam?.examDate
-                          ? new Date(res.exam.examDate).toLocaleDateString("en-GB", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric"
-                            })
-                          : "N/A"}
-                      </td>
-                      <td>
-                        <div className="table-grade-cell">
-                          <span className="grade-badge">{res.grade || 'N/A'}</span>
-                          <span className="score-text">({res.percentage !== undefined && res.percentage !== null ? `${res.percentage}%` : 'N/A'})</span>
-                        </div>
-                      </td>
-                      <td>
-                        <StatusBadge status={res.status || 'N/A'} />
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <Link
-                          to={`/results/${res.id || res._id}`}
-                          className="table-action-popout"
-                          aria-label={`View result for ${res.exam?.subject || 'exam'}`}
-                        >
-                          <ExternalLink size={15} />
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Rail Column */}
-        <div className="dashboard-right-rail">
-          {/* Daily Exam Schedule */}
-          <ScheduleRightRail
-            upcomingExams={upcomingExams}
-            title="Daily Exam Schedule"
-            subtitle="Your eligible examinations"
-            detailBasePath="/exams/schedule"
+      <Split>
+        <Panel title="Recent Results" action={<TextLink to="/results">View results</TextLink>}>
+          <PaperList
+            papers={resultPapers}
+            emptyTitle="No results available yet"
+            emptyDescription="Published results for your examinations will appear here."
           />
+        </Panel>
+        <Panel title="Exam Updates" action={<TextLink to="/notifications">View notifications</TextLink>}>
+          <UpdateList
+            items={updates}
+            emptyTitle="No examination updates"
+            emptyDescription="Schedule changes and examination announcements will appear here."
+          />
+        </Panel>
+      </Split>
 
-          {/* Recent Circulars & Notices Card */}
-          <div className="right-notices-card">
-            <div className="right-notices-header">
-              <div className="notices-title-group">
-                <Bell size={16} className="text-primary" />
-                <h4 className="notices-title">Recent Circulars</h4>
-              </div>
-              <Link to="/notifications" className="notices-view-link">
-                View All
-              </Link>
-            </div>
-
-            <div className="notices-list">
-            {recentAnnouncements.map((ann) => {
-              const excerpt = ann.content || '';
-              const publishDate = ann.publishDate
-                ? new Date(ann.publishDate).toLocaleDateString('en-GB', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                  })
-                : 'N/A';
-
-              return (
-                <div key={ann.id || ann._id} className="notice-item-mini">
-                  <div className="notice-mini-top">
-                    <StatusBadge status={ann.priority} size="sm" />
-                    <span className="notice-mini-date">{publishDate}</span>
-                  </div>
-                  <h5 className="notice-mini-title">{ann.title}</h5>
-                  <p className="notice-mini-excerpt">
-                    {excerpt.slice(0, 95)}{excerpt.length > 95 ? '...' : ''}
-                  </p>
-                </div>
-              );
-            })}
-            </div>
+      <Panel title="Performance">
+        {performance.totalResults > 0 ? (
+          <div className="admin-stats-grid">
+            <StatCard icon={BookOpen} title="Published Results" value={performance.totalResults} caption="Included in this summary" to="/results" />
+            {performance.averagePercentage !== null && (
+              <StatCard icon={Award} title="Average Percentage" value={`${performance.averagePercentage}%`} caption="Across published results" to="/results" />
+            )}
+            <StatCard icon={Calendar} title="Passed" value={performance.passed} caption="Published results marked passed" to="/results" />
+            <StatCard icon={Bell} title="Failed" value={performance.failed} caption="Published results marked failed" to="/results" />
           </div>
-        </div>
-      </div>
-    </div>
+        ) : (
+          <UpdateList items={[]} emptyTitle="No performance data yet" emptyDescription="A performance summary appears after results are published." />
+        )}
+      </Panel>
+    </DashboardShell>
   );
 };
 
