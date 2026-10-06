@@ -174,6 +174,9 @@ const InvigilationPage = () => {
               <tbody>
                 {(board.rooms || []).map((row) => {
                   const selected = (row.candidates || []).find((candidate) => candidate._id === choices[row.room._id]);
+                  const shown = readOnly
+                    ? (row.candidates || []).find((candidate) => candidate._id === row.assignment?.faculty?._id)
+                    : selected;
                   return (
                     <tr key={row.room._id}>
                       <td>{row.room.building ? `${row.room.building} / ` : ""}{row.room.roomNumber}</td>
@@ -192,11 +195,13 @@ const InvigilationPage = () => {
                           />
                         )}
                       </td>
-                      <td>{selected?.department?.code || row.assignment?.faculty?.department?.code || ""}</td>
-                      <td>{selected?.dutyCount ?? ""}</td>
+                      <td>{shown?.department?.code || ""}</td>
+                      <td>{shown?.dutyCount ?? ""}</td>
                       <td>
-                        {row.assignment?.status || (selected?.ok ? "Available" : "Unavailable")}
-                        {selected && reasonText(selected.reasons) ? <p className="duty-reason">{reasonText(selected.reasons)}</p> : null}
+                        {readOnly
+                          ? (row.assignment?.status || "Unassigned")
+                          : (row.assignment?.status || (selected?.ok ? "Available" : "Unavailable"))}
+                        {!readOnly && selected && reasonText(selected.reasons) ? <p className="duty-reason">{reasonText(selected.reasons)}</p> : null}
                       </td>
                       {!readOnly ? (
                         <td>
