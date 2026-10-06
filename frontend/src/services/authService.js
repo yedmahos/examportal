@@ -8,6 +8,7 @@ import {
   getStoredUser,
   setStoredUser
 } from "./api";
+import { normalizeUser } from "../utils/identity";
 
 export const authService = {
   // Login user
@@ -20,7 +21,7 @@ export const authService = {
     const data = response.data || response;
 
     const token = data.token;
-    const user = data.user;
+    const user = normalizeUser(data.user);
 
     if (!token) {
       throw new Error(
@@ -64,7 +65,7 @@ export const authService = {
     const data = response.data || response;
 
     const token = data.token;
-    const user = data.user;
+    const user = normalizeUser(data.user);
 
     if (!token) {
       throw new Error(
@@ -103,7 +104,7 @@ export const authService = {
 
   // Update cached user
   updateStoredUser(user) {
-    setStoredUser(user);
+    setStoredUser(normalizeUser(user) || user);
   },
 
   // Logout user

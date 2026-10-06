@@ -13,7 +13,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { canAccess } from '../../utils/roles';
+import { canAccess, roleLabel } from '../../utils/roles';
 import { dashboardService } from '../../services/dashboardService';
 import StatCard from '../../components/common/StatCard';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -24,7 +24,8 @@ import ErrorState from '../../components/common/ErrorState';
 import './AdminPages.css';
 
 const AdminDashboard = () => {
-  const { role } = useAuth();
+  const { user, role } = useAuth();
+  const label = roleLabel(role);
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -47,13 +48,18 @@ const AdminDashboard = () => {
     fetchDashboard();
   }, []);
 
-  if (isLoading) return <LoadingState message="Loading administrative portal..." />;
+  if (isLoading) return <LoadingState message={`Loading ${label} dashboard...`} />;
   if (error || !data) return <ErrorState message={error} onRetry={fetchDashboard} />;
 
   const { stats, recentActivities, recentResults, examTrends, upcomingSchedule } = data;
 
   return (
     <div className="admin-dashboard-page animate-fade-in">
+      <div className="admin-panel-card">
+        <h3 className="admin-panel-title">{label} dashboard</h3>
+        <p className="admin-panel-subtitle">{user?.name || 'N/A'} · {user?.email || 'N/A'}</p>
+        <p>Role: {label}</p>
+      </div>
       {/* 5-6 Stat Cards Top Rows */}
       <div className="admin-stats-grid">
         <StatCard
@@ -227,7 +233,7 @@ const AdminDashboard = () => {
 
           {/* Quick Access Admin Tools */}
           <div className="admin-quick-actions-card">
-            <h4 className="quick-actions-title">Administrative Actions</h4>
+            <h4 className="quick-actions-title">{label} actions</h4>
             <div className="quick-actions-list">
               {canAccess(role, ["super_admin", "examination_cell"]) && <Link to="/admin/exams" className="quick-action-link">
                 <div className="quick-action-icon text-primary bg-primary-light">

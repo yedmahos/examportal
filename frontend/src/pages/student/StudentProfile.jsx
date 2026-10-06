@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Hash, BookOpen, GraduationCap, Phone, Calendar, MapPin, Edit3, Shield, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { roleLabel } from '../../utils/roles';
 import { profileService } from '../../services/profileService';
 import PageHeader from '../../components/common/PageHeader';
 import Avatar from '../../components/common/Avatar';
@@ -32,6 +33,7 @@ const StudentProfile = () => {
     try {
       const res = await profileService.getProfile(user?.id);
       setProfile(res.data);
+      if (res.data) updateUser(res.data);
       setEditForm({
         name: res.data.name || '',
         phone: res.data.phone || '',
@@ -75,8 +77,8 @@ const StudentProfile = () => {
   return (
     <div className="student-profile-page animate-fade-in">
       <PageHeader
-        title="Student Profile"
-        subtitle="Verified academic credentials and contact record"
+        title={`${roleLabel(profile.role || user?.role)} Profile`}
+        subtitle={`${profile.name || 'N/A'} · ${profile.email || 'N/A'}`}
         actions={
           <Button
             variant="primary"
@@ -101,10 +103,10 @@ const StudentProfile = () => {
             />
             <div className="profile-name-stack">
               <h2 className="profile-full-name">{profile.name}</h2>
-              <span className="profile-student-id">{profile.studentId}</span>
+              <span className="profile-student-id">{profile.studentId || 'N/A'}</span>
               <div className="profile-status-row">
                 <StatusBadge status={profile.status || 'N/A'} size="md" />
-                <span className="profile-program-tag">{profile.semester}</span>
+                <span className="profile-program-tag">{roleLabel(profile.role || user?.role)}</span>
               </div>
             </div>
           </div>
@@ -139,22 +141,27 @@ const StudentProfile = () => {
             <div className="profile-fields-grid">
               <div className="p-field-item">
                 <span className="p-field-label">Department</span>
-                <span className="p-field-value">{profile.department}</span>
+                <span className="p-field-value">{profile.department || 'N/A'}</span>
+              </div>
+
+              <div className="p-field-item">
+                <span className="p-field-label">Role</span>
+                <span className="p-field-value">{roleLabel(profile.role || user?.role)}</span>
               </div>
 
               <div className="p-field-item">
                 <span className="p-field-label">Degree Program</span>
-                <span className="p-field-value">{profile.program}</span>
+                <span className="p-field-value">{profile.program || 'N/A'}</span>
               </div>
 
               <div className="p-field-item">
                 <span className="p-field-label">Current Semester</span>
-                <span className="p-field-value">{profile.semester}</span>
+                <span className="p-field-value">{profile.semester || 'N/A'}</span>
               </div>
 
               <div className="p-field-item">
                 <span className="p-field-label">Academic Year</span>
-                <span className="p-field-value">{profile.academicYear}</span>
+                <span className="p-field-value">{profile.academicYear || 'N/A'}</span>
               </div>
 
               <div className="p-field-item">
@@ -179,7 +186,7 @@ const StudentProfile = () => {
             <div className="profile-fields-grid">
               <div className="p-field-item">
                 <span className="p-field-label">Institutional Email</span>
-                <span className="p-field-value">{profile.email}</span>
+                <span className="p-field-value">{profile.email || 'N/A'}</span>
               </div>
 
               <div className="p-field-item">

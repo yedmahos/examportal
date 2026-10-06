@@ -6,16 +6,16 @@ import {
   getStoredUser,
   setStoredUser
 } from "./api";
+import { normalizeUser } from "../utils/identity";
 
 export const profileService = {
   // Get current profile
   async getProfile() {
     const response = await get("/profile");
 
-    const user =
-      response.user ||
-      response.data ||
-      response;
+    const user = normalizeUser(
+      response.user || response.data || response
+    );
 
     if (user) {
       setStoredUser(user);
@@ -43,10 +43,9 @@ export const profileService = {
 
     const response = await put("/profile", sanitized);
 
-    const user =
-      response.user ||
-      response.data ||
-      response;
+    const user = normalizeUser(
+      response.user || response.data || response
+    );
 
     if (user) {
       setStoredUser(user);

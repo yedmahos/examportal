@@ -45,6 +45,7 @@ import RoomsPage from '../pages/admin/RoomsPage';
 import RoomDetailPage from '../pages/admin/RoomDetailPage';
 import FacultyPage from '../pages/admin/FacultyPage';
 import FacultyNote from '../pages/faculty/FacultyNote';
+import FacultyDashboard from '../pages/faculty/FacultyDashboard';
 import StudentScheduleDetail from '../pages/student/StudentScheduleDetail';
 
 // Common
@@ -141,7 +142,7 @@ const AppRoutes = () => {
         <Route path="/admin/rooms" element={<RoleGate roles={["super_admin", "examination_cell"]}><RoomsPage /></RoleGate>} />
         <Route path="/admin/rooms/:id" element={<RoleGate roles={["super_admin", "examination_cell"]}><RoomDetailPage /></RoleGate>} />
         <Route path="/admin/profile" element={<AdminProfile />} />
-        <Route path="/faculty/dashboard" element={<RoleGate roles={["faculty"]}><AdminDashboard /></RoleGate>} />
+        <Route path="/faculty/dashboard" element={<RoleGate roles={["faculty"]}><FacultyDashboard /></RoleGate>} />
         <Route path="/faculty/duties" element={<RoleGate roles={["faculty"]}><FacultyNote title="My Duties" message="No examination duties are assigned yet." /></RoleGate>} />
         <Route path="/faculty/schedule" element={<RoleGate roles={["faculty"]}><FacultyNote title="My Schedule" message="Assigned schedules will appear here when duties are published." /></RoleGate>} />
         <Route path="/faculty/notifications" element={<RoleGate roles={["faculty"]}><StudentNotifications /></RoleGate>} />

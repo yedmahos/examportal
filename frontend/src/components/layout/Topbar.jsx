@@ -6,13 +6,10 @@ import {
   MessageSquare,
   Search,
   User,
-  LogOut,
-  Shield,
-  GraduationCap,
-  ExternalLink,
-  ChevronDown
+  LogOut
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { profilePath, roleLabel } from '../../utils/roles';
 import Avatar from '../common/Avatar';
 import SearchBar from '../common/SearchBar';
 import NotificationPanel from '../notifications/NotificationPanel';
@@ -65,14 +62,14 @@ const Topbar = ({ onOpenMobileMenu }) => {
   // Contextual title based on path
   const getContextualTitle = () => {
     const path = location.pathname;
-    if (path === '/dashboard' || path === '/admin/dashboard') {
-      return `Welcome Back, ${user?.name || (role === 'admin' ? 'Administrator' : 'Student')}`;
+    if (path === '/dashboard' || path.endsWith('/dashboard')) {
+      return `Welcome back, ${user?.name || 'there'}`;
     }
-    if (path.startsWith('/exams')) return 'Exams Schedule';
-    if (path.startsWith('/results')) return 'Grades & Academic Results';
-    if (path.startsWith('/notifications')) return 'Notification Center';
-    if (path.startsWith('/profile') || path.startsWith('/admin/profile')) return 'Account Profile';
-    if (path.startsWith('/admin/students')) return 'Students Directory';
+    if (path.startsWith('/exams') || path.endsWith('/schedule')) return 'Schedule';
+    if (path.startsWith('/results') || path.endsWith('/results')) return 'Results';
+    if (path.startsWith('/notifications') || path.endsWith('/notifications')) return 'Notification Center';
+    if (path.endsWith('/profile')) return `${roleLabel(role)} Profile`;
+    if (path.startsWith('/admin/students') || path.endsWith('/students')) return 'Students Directory';
     if (path.startsWith('/admin/announcements')) return 'Announcements Management';
     return 'Exam Management Portal';
   };
@@ -161,6 +158,10 @@ const Topbar = ({ onOpenMobileMenu }) => {
 
           {/* User Profile Avatar with Menu */}
           <div className="topbar-profile-anchor" ref={profileMenuRef}>
+            <div className="topbar-identity">
+              <span className="topbar-identity-name">{user?.name || 'N/A'}</span>
+              <span className="topbar-identity-email">{user?.email || 'N/A'}</span>
+            </div>
             <button
               type="button"
               className="topbar-avatar-btn"
@@ -182,15 +183,7 @@ const Topbar = ({ onOpenMobileMenu }) => {
                     <span className="dropdown-name">{user?.name}</span>
                     <span className="dropdown-email">{user?.email}</span>
                     <span className="dropdown-role-chip">
-                      {role === 'admin' ? (
-                        <>
-                          <Shield size={11} /> Admin Officer
-                        </>
-                      ) : (
-                        <>
-                          <GraduationCap size={11} /> Student ({user?.studentId || 'Verified'})
-                        </>
-                      )}
+                      {roleLabel(user?.role)}
                     </span>
                   </div>
                 </div>
@@ -198,7 +191,7 @@ const Topbar = ({ onOpenMobileMenu }) => {
                 <div className="dropdown-divider" />
 
                 <Link
-                  to={role === 'admin' ? '/admin/profile' : '/profile'}
+                  to={profilePath(user?.role)}
                   className="profile-dropdown-item"
                   onClick={() => setIsProfileMenuOpen(false)}
                 >

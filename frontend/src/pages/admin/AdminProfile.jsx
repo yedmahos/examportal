@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Shield, CheckCircle2, Lock, Edit2 } from 'lucide-react';
+import { Shield, Lock, Edit2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { departmentLabel, roleLabel } from '../../utils/roles';
 import { profileService } from '../../services/profileService';
 import PageHeader from '../../components/common/PageHeader';
 import Avatar from '../../components/common/Avatar';
@@ -70,7 +71,7 @@ const AdminProfile = () => {
       setProfile(res.data);
       updateUser(res.data);
       setIsModalOpen(false);
-      showToast('Admin profile updated successfully', 'success');
+      showToast('Profile updated successfully', 'success');
     } catch (error) {
       showToast(error.message || 'Failed to save profile', 'error');
     } finally {
@@ -78,15 +79,17 @@ const AdminProfile = () => {
     }
   };
 
-  if (isLoading) return <LoadingState message="Loading administrator profile..." />;
+  if (isLoading) return <LoadingState message="Loading profile..." />;
 
   const record = profile || user || {};
+  const label = roleLabel(record.role || user?.role);
+  const department = departmentLabel(record);
 
   return (
     <div className="admin-profile-page animate-fade-in">
       <PageHeader
-        title="Administrative Officer Profile"
-        subtitle="Examination Directorate credential and security permissions"
+        title={`${label} Profile`}
+        subtitle={`${record.name || 'N/A'} · ${record.email || 'N/A'}`}
         actions={
           <Button
             variant="primary"
@@ -102,34 +105,14 @@ const AdminProfile = () => {
       <div className="profile-layout-grid">
         <div className="profile-hero-card">
           <div className="profile-hero-top">
-            <Avatar src={record.profileImage || record.avatar} name={record.name || 'Admin'} size="xl" />
+            <Avatar src={record.profileImage || record.avatar} name={record.name || 'User'} size="xl" />
             <div className="profile-name-stack">
               <h2 className="profile-full-name">{display(record.name)}</h2>
               <span className="profile-student-id">{display(record.email)}</span>
               <div className="profile-status-row">
                 <StatusBadge status={record.status || 'N/A'} />
-                <span className="profile-program-tag">Admin Role</span>
+                <span className="profile-program-tag">{label}</span>
               </div>
-            </div>
-          </div>
-
-          <div className="admin-permissions-list">
-            <h4 className="perm-title">Privileged Access Scope</h4>
-            <div className="perm-item">
-              <CheckCircle2 size={15} className="text-success" />
-              <span>Timetable & Hall Scheduling</span>
-            </div>
-            <div className="perm-item">
-              <CheckCircle2 size={15} className="text-success" />
-              <span>Marksheet Verification & Publication</span>
-            </div>
-            <div className="perm-item">
-              <CheckCircle2 size={15} className="text-success" />
-              <span>Candidate Dossier & Registry</span>
-            </div>
-            <div className="perm-item">
-              <CheckCircle2 size={15} className="text-success" />
-              <span>Portal Circular Broadcasting</span>
             </div>
           </div>
         </div>
@@ -148,8 +131,13 @@ const AdminProfile = () => {
               </div>
 
               <div className="p-field-item">
-                <span className="p-field-label">Designation</span>
-                <span className="p-field-value">N/A</span>
+                <span className="p-field-label">Role</span>
+                <span className="p-field-value">{label}</span>
+              </div>
+
+              <div className="p-field-item">
+                <span className="p-field-label">Department</span>
+                <span className="p-field-value">{display(department)}</span>
               </div>
 
               <div className="p-field-item">
@@ -184,7 +172,7 @@ const AdminProfile = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => !isSaving && setIsModalOpen(false)}
-        title="Edit Administrator Record"
+        title="Edit profile"
         subtitle="Update your name, phone, and address"
         footer={
           <div className="modal-footer-btns">
