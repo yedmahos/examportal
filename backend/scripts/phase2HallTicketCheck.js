@@ -6,6 +6,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
 const express = require("express");
+const cors = require("cors");
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || "phase2-hall-ticket-check";
 process.env.USE_MEMORY = "1";
@@ -31,6 +32,7 @@ const startMemory = async () => {
 };
 
 const app = express();
+app.use(cors({ origin: true, exposedHeaders: ["Content-Disposition"] }));
 app.use(express.json());
 const mount = (prefix, routes) => app.use(prefix, routes);
 mount("/api/auth", require("../routes/authRoutes"));
@@ -166,7 +168,7 @@ const run = async () => {
     };
 
     const server = await new Promise((resolve) => {
-        const listener = app.listen(0, "127.0.0.1", () => resolve(listener));
+        const listener = app.listen(Number(process.env.PORT) || 0, "127.0.0.1", () => resolve(listener));
     });
     port = server.address().port;
 
