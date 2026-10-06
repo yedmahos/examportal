@@ -55,6 +55,7 @@ const roomRoutes = require("./routes/roomRoutes");
 const roomAllocationRoutes = require("./routes/roomAllocationRoutes");
 const seatingRoutes = require("./routes/seatingRoutes");
 const invigilationRoutes = require("./routes/invigilationRoutes");
+const hallTicketRoutes = require("./routes/hallTicketRoutes");
 const { ensureCatalog } = require("./services/catalogSeed");
 
 const app = express();
@@ -67,7 +68,8 @@ app.use(cors({
         }
 
         return callback(new Error("Origin not allowed"));
-    }
+    },
+    exposedHeaders: ["Content-Disposition"]
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -109,6 +111,7 @@ app.use("/api/rooms", roomRoutes);
 app.use("/api/room-allocations", roomAllocationRoutes);
 app.use("/api/seating-plans", seatingRoutes);
 app.use("/api/invigilation", invigilationRoutes);
+app.use("/api/hall-tickets", hallTicketRoutes);
 
 // Unknown route handler
 app.use((req, res) => {

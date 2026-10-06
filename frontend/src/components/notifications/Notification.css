@@ -287,3 +287,19 @@
 .notif-view-more-btn:hover {
   color: var(--color-primary);
 }
+
+.notif-view-exam-btn {
+  margin-top: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.notif-view-exam-btn:hover {
+  background: var(--color-surface-alt);
+}

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Settings, ChevronDown, CheckCheck } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import Tabs from '../common/Tabs';
-import NotificationItem from './NotificationItem';
+import NotificationItem, { scheduleReferenceId } from './NotificationItem';
 import { notificationService } from '../../services/notificationService';
 import { useToast } from '../common/Toast';
 import './Notification.css';
@@ -154,6 +154,14 @@ const NotificationPanel = ({
               notification={item}
               onMarkAsRead={handleMarkAsRead}
               onOpenAttachment={handleOpenAttachment}
+              onViewExamination={(notification) => {
+                const referenceId = scheduleReferenceId(notification);
+                if (!referenceId) return;
+                const id = notification.id || notification._id;
+                if (!notification.isRead && id) handleMarkAsRead(id);
+                onClose();
+                navigate(`/exams/schedule/${referenceId}`);
+              }}
             />
           ))
         )}

@@ -705,3 +705,18 @@
   margin-bottom: 16px;
   padding: 16px 20px;
 }
+
+.hall-ticket-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 340px;
+}
+
+.hall-ticket-reason {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: right;
+}
