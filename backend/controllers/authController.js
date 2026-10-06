@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { presentUser } = require("../utils/presentUser");
 
 const parseSemester = (value) => {
     if (
@@ -127,19 +128,7 @@ const registerUser = async (req, res) => {
             message:
                 "User registered successfully",
             token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                studentId: user.studentId,
-                department: user.department,
-                program: user.program,
-                semester: user.semester,
-                academicYear:
-                    user.academicYear,
-                phone: user.phone
-            }
+            user: presentUser(user)
         });
     } catch (error) {
         console.error(
@@ -227,6 +216,11 @@ const loginUser = async (req, res) => {
             });
         }
 
+        await user.populate({
+            path: "departmentRef",
+            select: "name code"
+        });
+
         const token = jwt.sign(
             {
                 userId: user._id,
@@ -241,19 +235,7 @@ const loginUser = async (req, res) => {
         res.status(200).json({
             message: "Login successful",
             token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                studentId: user.studentId,
-                department: user.department,
-                program: user.program,
-                semester: user.semester,
-                academicYear:
-                    user.academicYear,
-                phone: user.phone
-            }
+            user: presentUser(user)
         });
     } catch (error) {
         console.error(

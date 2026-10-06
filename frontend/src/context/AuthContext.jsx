@@ -6,6 +6,8 @@ import React, {
 } from "react";
 
 import { authService } from "../services/authService";
+import { profileService } from "../services/profileService";
+import { normalizeUser } from "../utils/identity";
 
 const AuthContext = createContext(null);
 
@@ -14,29 +16,42 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const restoreSession = () => {
+    let active = true;
+
+    const restoreSession = async () => {
       try {
         const token = authService.isAuthenticated();
-        const cachedUser = authService.getStoredUser();
 
-        if (token && cachedUser) {
-          setUser(cachedUser);
-        } else {
-          setUser(null);
+        if (!token) {
+          if (active) setUser(null);
+          return;
         }
+
+        const response = await profileService.getProfile();
+        if (active) setUser(response.data);
       } catch (error) {
         console.error(
           "Failed to restore auth session:",
           error
         );
 
-        setUser(null);
+        if (!active) return;
+
+        if (error.status === 401) {
+          setUser(null);
+        } else {
+          setUser(normalizeUser(authService.getStoredUser()));
+        }
       } finally {
-        setIsLoading(false);
+        if (active) setIsLoading(false);
       }
     };
 
     restoreSession();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Login user
@@ -49,9 +64,18 @@ export const AuthProvider = ({ children }) => {
         password
       );
 
-      setUser(response.data.user);
+      let nextUser = response.data.user;
 
-      return response.data.user;
+      try {
+        const profile = await profileService.getProfile();
+        if (profile.data?.role) nextUser = profile.data;
+      } catch (error) {
+        if (error.status === 401) throw error;
+      }
+
+      setUser(nextUser);
+
+      return nextUser;
     } finally {
       setIsLoading(false);
     }
@@ -92,7 +116,10 @@ export const AuthProvider = ({ children }) => {
         return previousUser;
       }
 
-      const updatedUser = {
+      const updatedUser = normalizeUser({
+        ...previousUser,
+        ...updatedFields
+      }) || {
         ...previousUser,
         ...updatedFields
       };

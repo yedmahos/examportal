@@ -12,6 +12,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { roleLabel } from '../../utils/roles';
 import { dashboardService } from '../../services/dashboardService';
 import StatCard from '../../components/common/StatCard';
 import Card from '../../components/common/Card';
@@ -59,6 +60,9 @@ const StudentDashboard = () => {
 
   return (
     <div className="student-dashboard-page animate-fade-in">
+      <Card title={`${roleLabel(user?.role)} dashboard`} subtitle={`${user?.name || 'N/A'} · ${user?.email || 'N/A'}`}>
+        <p>Role: {roleLabel(user?.role)}</p>
+      </Card>
       {/* 3 Summary Stat Cards matching Enlight reference */}
       <div className="dashboard-stats-grid">
         <StatCard

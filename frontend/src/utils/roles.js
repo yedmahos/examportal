@@ -31,15 +31,33 @@ const ROLE_HOME = {
 
 export const roleHome = (role) => ROLE_HOME[role] || "/dashboard";
 
-export const roleLabel = (role) => {
-  const labels = {
-    student: "Student Portal",
-    faculty: "Faculty",
-    department_admin: "Department",
-    examination_cell: "Examination Cell",
-    super_admin: "Super Admin",
-    admin: "Administration",
-  };
+const ROLE_LABELS = {
+  student: "Student",
+  faculty: "Faculty",
+  department_admin: "Department Admin",
+  examination_cell: "Examination Cell",
+  super_admin: "Super Admin",
+  admin: "Legacy Admin",
+};
 
-  return labels[role] || "Portal";
+export const roleLabel = (role) => ROLE_LABELS[role] || "User";
+
+const PROFILE_PATHS = {
+  student: "/student/profile",
+  faculty: "/faculty/profile",
+  department_admin: "/department-admin/profile",
+  examination_cell: "/examination-cell/profile",
+  super_admin: "/super-admin/profile",
+  admin: "/admin/profile",
+};
+
+export const profilePath = (role) => PROFILE_PATHS[role] || "/profile";
+
+export const departmentLabel = (user) => {
+  if (!user) return "";
+  const ref = user.departmentRef;
+  if (ref && typeof ref === "object" && (ref.name || ref.code)) {
+    return ref.name || ref.code;
+  }
+  return user.department || "";
 };
