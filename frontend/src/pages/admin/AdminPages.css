@@ -221,6 +221,31 @@
   width: 100%;
 }
 
+.duty-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.duty-table-wrap {
+  overflow-x: auto;
+}
+
+.duty-table th,
+.duty-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: var(--text-sm);
+  vertical-align: top;
+}
+
+.duty-reason {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
 /* Table User Cell */
 .table-user-cell {
   display: flex;

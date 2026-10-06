@@ -2,6 +2,7 @@ const Schedule = require("../models/Schedule");
 const Subject = require("../models/Subject");
 const RoomAllocation = require("../models/RoomAllocation");
 const { planRoomAllocation, saveRoomAllocation } = require("../services/roomAllocationService");
+const { cancelDutiesForRemovedRoom } = require("../services/invigilationService");
 const { isObjectId, invalidId, handleError } = require("../utils/http");
 const { departmentScope, assertDepartment } = require("../utils/departmentScope");
 
@@ -80,6 +81,11 @@ const deleteAllocation = async (req, res) => {
         if (!existing) return res.status(404).json({ message: "Room allocation not found" });
 
         await loadSchedule(existing.schedule, req);
+        try {
+            await cancelDutiesForRemovedRoom(existing.schedule, existing.room);
+        } catch (error) {
+            console.error("Invigilation room sync failed:", error.message);
+        }
         await existing.deleteOne();
         res.status(200).json({ message: "Room allocation removed" });
     } catch (error) {
