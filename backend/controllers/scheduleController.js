@@ -3,6 +3,8 @@ const Subject = require("../models/Subject");
 const ExamSession = require("../models/ExamSession");
 const Room = require("../models/Room");
 const Schedule = require("../models/Schedule");
+const ScheduleApproval = require("../models/ScheduleApproval");
+const ScheduleVersion = require("../models/ScheduleVersion");
 const RoomAllocation = require("../models/RoomAllocation");
 const ExamEligibility = require("../models/ExamEligibility");
 const { snapshotEligibleStudentIds } = require("../services/eligibilityService");
@@ -217,6 +219,37 @@ const loadScheduleInput = async (body) => {
     };
 };
 
+const LOCK_MESSAGE = "This schedule is published and locked. Create a new version to make changes.";
+
+const intersectIds = (query, ids) => {
+    if (!query._id) {
+        query._id = { $in: ids };
+        return;
+    }
+
+    const current = new Set((query._id.$in || []).map((id) => String(id)));
+    query._id = { $in: ids.filter((id) => current.has(String(id))) };
+};
+
+const attachApprovals = async (items) => {
+    const approvals = await ScheduleApproval.find({
+        schedule: { $in: items.map((item) => item._id) }
+    }).select("schedule stage status currentVersion");
+    const bySchedule = new Map(approvals.map((row) => [String(row.schedule), row]));
+
+    return items.map((item) => {
+        const approval = bySchedule.get(String(item._id));
+        return {
+            ...item,
+            approval: approval ? {
+                stage: approval.stage,
+                status: approval.status,
+                currentVersion: approval.currentVersion
+            } : null
+        };
+    });
+};
+
 const conflictPayload = async (input, ignoreScheduleId) => {
     return detectConflicts({
         examinationId: input.examination._id,
@@ -295,6 +328,25 @@ const listSchedules = async (req, res) => {
             query.status = req.query.status;
         }
 
+        if (req.query.approvalStage) {
+            const stages = ["DRAFT", "EXAM_CELL_REVIEW", "DEPARTMENT_VERIFICATION", "ACADEMIC_APPROVAL", "PUBLISHED"];
+            if (!stages.includes(req.query.approvalStage)) {
+                return res.status(400).json({ message: "Invalid approval stage" });
+            }
+            intersectIds(query, await ScheduleApproval.find({ stage: req.query.approvalStage }).distinct("schedule"));
+        }
+
+        if (req.query.versionState) {
+            if (!["draft", "published", "archived"].includes(req.query.versionState)) {
+                return res.status(400).json({ message: "Invalid version state" });
+            }
+            intersectIds(query, await ScheduleVersion.find({ state: req.query.versionState }).distinct("schedule"));
+        }
+
+        if (req.query.changed === "true") {
+            intersectIds(query, await ScheduleVersion.find({ versionNumber: { $gt: 1 } }).distinct("schedule"));
+        }
+
         if (req.query.date) {
             const date = parseDateOnly(req.query.date);
             if (!date) return res.status(400).json({ message: "Invalid date" });
@@ -309,7 +361,7 @@ const listSchedules = async (req, res) => {
         ]);
 
         res.status(200).json({
-            items: await withAllocations(items),
+            items: await attachApprovals(await withAllocations(items)),
             ...paginationMeta({ page, limit, total })
         });
     } catch (error) {
@@ -342,7 +394,18 @@ const getSchedule = async (req, res) => {
         const allocations = await RoomAllocation.find({ schedule: item._id })
             .populate("room", "roomNumber building floor capacity");
 
-        res.status(200).json({ item, allocations });
+        const payload = { item, allocations };
+        if (req.user.role !== "student") {
+            const approval = await ScheduleApproval.findOne({ schedule: item._id })
+                .select("stage status currentVersion");
+            payload.approval = approval ? {
+                stage: approval.stage,
+                status: approval.status,
+                currentVersion: approval.currentVersion
+            } : null;
+        }
+
+        res.status(200).json(payload);
     } catch (error) {
         return handleError(res, error, "Get schedule error:");
     }
@@ -355,6 +418,10 @@ const updateSchedule = async (req, res) => {
         const current = await Schedule.findById(req.params.id);
 
         if (!current) return res.status(404).json({ message: "Schedule not found" });
+
+        if (current.workflowLocked) {
+            return res.status(409).json({ message: LOCK_MESSAGE });
+        }
 
         const previousStudents = new Set((current.eligibleStudents || []).map((studentId) => String(studentId)));
         const previous = {
@@ -395,6 +462,12 @@ const updateSchedule = async (req, res) => {
         current.status = input.status;
         current.eligibleStudents = input.students;
         current.warnings = conflicts.conflicts.filter((item) => item.severity === "warning");
+
+        const fresh = await Schedule.findById(current._id).select("workflowLocked");
+        if (!fresh || fresh.workflowLocked) {
+            return res.status(409).json({ message: LOCK_MESSAGE });
+        }
+
         await current.save();
 
         const item = await populateSchedule(Schedule.findById(current._id));
@@ -413,12 +486,22 @@ const updateSchedule = async (req, res) => {
             console.error("Invigilation schedule sync failed:", error.message);
         }
 
+        try {
+            const { refreshDraftSnapshot } = require("../services/scheduleWorkflowService");
+            await refreshDraftSnapshot(current._id);
+        } catch (error) {
+            console.error("Draft snapshot refresh failed:", error.message);
+        }
+
         res.status(200).json({
             message: "Schedule updated",
             item,
             ...conflicts
         });
     } catch (error) {
+        if (error.name === "VersionError" || error.status === 409) {
+            return res.status(409).json({ message: error.message || LOCK_MESSAGE });
+        }
         if (error.status) return res.status(error.status).json({ message: error.message });
         return handleError(res, error, "Update schedule error:");
     }
@@ -431,6 +514,10 @@ const deleteSchedule = async (req, res) => {
         const item = await Schedule.findById(req.params.id);
 
         if (!item) return res.status(404).json({ message: "Schedule not found" });
+
+        if (item.workflowLocked) {
+            return res.status(409).json({ message: LOCK_MESSAGE });
+        }
 
         try {
             await cancelDutiesForSchedule(item);

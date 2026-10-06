@@ -143,3 +143,30 @@
   font-size: var(--text-sm);
   line-height: 1.5;
 }
+
+.duty-preview {
+  border-top: 1px solid var(--color-border-subtle);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.duty-preview-label {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.duty-preview strong {
+  display: block;
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.duty-preview p {
+  margin: 2px 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}

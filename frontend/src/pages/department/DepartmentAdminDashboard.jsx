@@ -21,6 +21,7 @@ import {
   TextLink,
   formatWhen,
 } from "../../components/dashboard/RoleSections";
+import WorkflowSummary from "../../components/schedules/WorkflowSummary";
 
 const settled = async (task) => {
   try {
@@ -149,6 +150,8 @@ const DepartmentAdminDashboard = () => {
           Assigned duties and faculty workload for this department can be reviewed here. Allocation stays with the Examination Cell.
         </p>
       </Panel>
+
+      <WorkflowSummary basePath="/department-admin/schedules" audience="department" />
 
       <Panel title="Department Examination Schedule" action={<TextLink to="/department-admin/schedules">Open schedules</TextLink>}>
         <PaperList
