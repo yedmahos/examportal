@@ -55,7 +55,7 @@ const LoginPage = () => {
     setIsSubmitting(true);
     try {
       const user = await login(email, password);
-      showToast(`Welcome back, ${user.name}!`, 'success');
+      showToast('Signed in.', 'success');
       navigate(roleHome(user.role), { replace: true });
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Login failed. Please check your credentials.';
@@ -74,7 +74,7 @@ const LoginPage = () => {
 
     try {
       const user = await login(account.email, account.password);
-      showToast(`Welcome back, ${user.name}!`, 'success');
+      showToast('Signed in.', 'success');
       navigate(roleHome(user.role), { replace: true });
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Demo sign-in failed.';
