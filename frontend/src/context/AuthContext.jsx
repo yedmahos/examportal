@@ -64,9 +64,18 @@ export const AuthProvider = ({ children }) => {
         password
       );
 
-      setUser(response.data.user);
+      let nextUser = response.data.user;
 
-      return response.data.user;
+      try {
+        const profile = await profileService.getProfile();
+        if (profile.data?.role) nextUser = profile.data;
+      } catch (error) {
+        if (error.status === 401) throw error;
+      }
+
+      setUser(nextUser);
+
+      return nextUser;
     } finally {
       setIsLoading(false);
     }

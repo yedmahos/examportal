@@ -13,7 +13,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { canAccess, roleLabel } from '../../utils/roles';
+import { canAccess, departmentLabel, roleLabel } from '../../utils/roles';
 import { dashboardService } from '../../services/dashboardService';
 import StatCard from '../../components/common/StatCard';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -59,6 +59,7 @@ const AdminDashboard = () => {
         <h3 className="admin-panel-title">{label} dashboard</h3>
         <p className="admin-panel-subtitle">{user?.name || 'N/A'} · {user?.email || 'N/A'}</p>
         <p>Role: {label}</p>
+        {departmentLabel(user) ? <p>Department: {departmentLabel(user)}</p> : null}
       </div>
       {/* 5-6 Stat Cards Top Rows */}
       <div className="admin-stats-grid">
