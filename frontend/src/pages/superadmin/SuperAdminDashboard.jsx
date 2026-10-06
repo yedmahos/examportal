@@ -16,6 +16,7 @@ import {
   formatWhen,
   formatStamp,
 } from "../../components/dashboard/RoleSections";
+import WorkflowSummary from "../../components/schedules/WorkflowSummary";
 
 const settled = async (task) => {
   try {
@@ -161,6 +162,8 @@ const SuperAdminDashboard = () => {
           )}
         </Panel>
       </Split>
+
+      <WorkflowSummary basePath="/super-admin/schedules" audience="super" />
 
       <Panel title="Invigilation" action={<TextLink to="/super-admin/invigilation">Open invigilation</TextLink>}>
         <p className="role-note">

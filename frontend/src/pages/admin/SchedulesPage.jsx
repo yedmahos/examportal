@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import PageHeader from "../../components/common/PageHeader";
 import Button from "../../components/common/Button";
 import FormField from "../../components/common/FormField";
@@ -21,6 +22,7 @@ import {
   roomAllocationService,
   seatingService,
 } from "../../services/resourceService";
+import ScheduleWorkflow from "../../components/schedules/ScheduleWorkflow";
 import "./AdminPages.css";
 
 const EligibilityPreview = ({ loading, error, eligibility, ready, studentLabel }) => {
@@ -103,6 +105,7 @@ const emptyForm = () => ({
 
 const SchedulesPage = () => {
   const { role } = useAuth();
+  const [searchParams] = useSearchParams();
   const canSave = canAccess(role, ["examination_cell", "super_admin"]);
   const canSeat = canAccess(role, ["examination_cell", "super_admin", "department_admin"]);
   const { showToast } = useToast();
@@ -129,6 +132,10 @@ const SchedulesPage = () => {
   const [savedSeating, setSavedSeating] = useState(null);
   const [seatingBusy, setSeatingBusy] = useState(false);
   const [roomView, setRoomView] = useState("");
+  const [selectedSchedule, setSelectedSchedule] = useState("");
+  const [approvalStage, setApprovalStage] = useState(searchParams.get("approvalStage") || "");
+  const [versionState, setVersionState] = useState(searchParams.get("versionState") || "");
+  const [changedOnly, setChangedOnly] = useState(searchParams.get("changed") === "true");
 
   const loadLists = async () => {
     const [examRes, sessionRes, roomRes] = await Promise.all([
@@ -145,7 +152,12 @@ const SchedulesPage = () => {
     setIsLoading(true);
     setError("");
     try {
-      const response = await scheduleService.list({ limit: 20 });
+      const response = await scheduleService.list({
+        limit: 20,
+        approvalStage,
+        versionState,
+        changed: changedOnly ? "true" : "",
+      });
       setItems(response.data.items);
     } catch (err) {
       setError(err.message || "Failed to load schedules");
@@ -156,8 +168,11 @@ const SchedulesPage = () => {
 
   useEffect(() => {
     loadLists().catch(() => {});
-    loadSchedules();
   }, []);
+
+  useEffect(() => {
+    loadSchedules();
+  }, [approvalStage, versionState, changedOnly]);
 
   const selectedExamination = examinations.find((item) => item.id === form.examination);
 
@@ -442,6 +457,13 @@ const SchedulesPage = () => {
   return (
     <div className="animate-fade-in">
       <PageHeader title="Schedules" subtitle="Manual scheduling with server-side conflict and room checks" />
+      <ScheduleWorkflow
+        scheduleId={selectedSchedule}
+        role={role}
+        sessions={sessions}
+        rooms={rooms}
+        onChanged={loadSchedules}
+      />
       {canSave && (
         <form className="admin-panel-card phase1-form" onSubmit={save}>
           <div className="phase1-grid">
@@ -640,9 +662,51 @@ const SchedulesPage = () => {
       )}
       {error ? <ErrorState message={error} onRetry={loadSchedules} /> : (
         <div className="admin-table-panel">
+          <div className="phase1-grid workflow-filters">
+            <FormField label="Approval stage">
+              <Select
+                value={approvalStage}
+                onChange={(event) => setApprovalStage(event.target.value)}
+                options={[
+                  { value: "", label: "All stages" },
+                  { value: "DRAFT", label: "Draft" },
+                  { value: "EXAM_CELL_REVIEW", label: "Pending Exam Cell Review" },
+                  { value: "DEPARTMENT_VERIFICATION", label: "Pending Department Verification" },
+                  { value: "ACADEMIC_APPROVAL", label: "Pending Academic Approval" },
+                  { value: "PUBLISHED", label: "Published" },
+                ]}
+                placeholder=""
+              />
+            </FormField>
+            <FormField label="Version">
+              <Select
+                value={versionState}
+                onChange={(event) => setVersionState(event.target.value)}
+                options={[
+                  { value: "", label: "All versions" },
+                  { value: "draft", label: "Draft version" },
+                  { value: "published", label: "Published version" },
+                  { value: "archived", label: "Archived version" },
+                ]}
+                placeholder=""
+              />
+            </FormField>
+            <FormField label="Changes">
+              <Select
+                value={changedOnly ? "true" : ""}
+                onChange={(event) => setChangedOnly(event.target.value === "true")}
+                options={[
+                  { value: "", label: "All schedules" },
+                  { value: "true", label: "Recently changed" },
+                ]}
+                placeholder=""
+              />
+            </FormField>
+          </div>
           <DataTable
             isLoading={isLoading}
             data={items}
+            onRowClick={(row) => setSelectedSchedule(row.id)}
             emptyTitle="No schedules"
             emptyDescription="Saved schedules appear here."
             columns={[
@@ -662,7 +726,8 @@ const SchedulesPage = () => {
                 },
               },
               { title: "Students", key: "eligibleStudents", render: (value) => Array.isArray(value) ? value.length : 0 },
-              { title: "Status", key: "status", render: (value) => <StatusBadge status={value} size="sm" /> },
+              { title: "Status", key: "status", render: (value, row) => <StatusBadge status={row.operationalState || value} size="sm" /> },
+              { title: "Approval", key: "approval", render: (value) => value?.stage ? <StatusBadge status={value.stage} size="sm" /> : "Not submitted" },
               { title: "Warnings", key: "warnings", render: (value) => Array.isArray(value) && value.length ? value.length : "None" },
             ]}
           />

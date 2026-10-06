@@ -16,6 +16,7 @@ import {
   formatWhen,
   formatStamp,
 } from "../../components/dashboard/RoleSections";
+import WorkflowSummary from "../../components/schedules/WorkflowSummary";
 
 const schedulePaper = (item) => ({
   id: item.id || item._id,
@@ -137,6 +138,8 @@ const ExaminationCellDashboard = () => {
           )}
         </Panel>
       </Split>
+
+      <WorkflowSummary basePath="/examination-cell/schedules" audience="exam" />
 
       <Panel title="Invigilation" action={<TextLink to="/examination-cell/invigilation">Open invigilation</TextLink>}>
         <p className="role-note">

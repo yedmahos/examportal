@@ -48,6 +48,25 @@ const scheduleSchema = new mongoose.Schema(
             default: "draft"
         },
 
+        // Operational note for a published change (postponed/cancelled).
+        // This is not the approval stage and not Exam.status.
+        operationalState: {
+            type: String,
+            enum: ["", "postponed", "cancelled"],
+            default: ""
+        },
+
+        // Set only by the approval publish action. Legacy schedules stay editable.
+        workflowLocked: {
+            type: Boolean,
+            default: false
+        },
+
+        publishedVersion: {
+            type: Number,
+            default: null
+        },
+
         eligibleStudents: [
             {
                 type: mongoose.Schema.Types.ObjectId,
