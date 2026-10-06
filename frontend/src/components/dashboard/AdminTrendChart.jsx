@@ -38,25 +38,16 @@ const AdminTrendChart = ({ data = [] }) => {
   return (
     <div className="performance-chart-wrapper">
       <svg viewBox={`0 0 ${width} ${height}`} className="performance-svg" preserveAspectRatio="xMidYMid meet">
-        <defs>
-          <linearGradient id="adminChartGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#6C5DD3" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="#6C5DD3" stopOpacity="0.0" />
-          </linearGradient>
-        </defs>
-
-        {/* Y ticks and lines */}
         {yTicks.map(t => {
           const y = getY(t);
           return (
             <g key={`t-${t}`}>
               <line
+                className="chart-grid-line"
                 x1={paddingLeft}
                 y1={y}
                 x2={width - paddingRight}
                 y2={y}
-                stroke="#EEF0F4"
-                strokeDasharray="4 4"
                 strokeWidth="1"
               />
               <text x={paddingLeft - 8} y={y + 4} textAnchor="end" className="chart-axis-label">
@@ -67,22 +58,19 @@ const AdminTrendChart = ({ data = [] }) => {
         })}
 
         {/* Scheduled Area */}
-        <path d={areaPath} fill="url(#adminChartGrad)" />
+        <path className="chart-area" d={areaPath} />
 
-        {/* Completed line (dashed) */}
         <path
+          className="chart-line-completed"
           d={completedPath}
           fill="none"
-          stroke="#22C55E"
           strokeWidth="2"
-          strokeDasharray="4 4"
         />
 
-        {/* Scheduled line */}
         <path
+          className="chart-line-scheduled"
           d={scheduledPath}
           fill="none"
-          stroke="#6C5DD3"
           strokeWidth="2.5"
           strokeLinecap="round"
         />
@@ -90,8 +78,8 @@ const AdminTrendChart = ({ data = [] }) => {
         {/* Points */}
         {data.map((d, i) => (
           <g key={`pt-${i}`}>
-            <circle cx={getX(i)} cy={getY(d.scheduled)} r={4} fill="#FFFFFF" stroke="#6C5DD3" strokeWidth="2" />
-            <circle cx={getX(i)} cy={getY(d.completed)} r={3} fill="#22C55E" />
+            <circle className="chart-point-scheduled" cx={getX(i)} cy={getY(d.scheduled)} r={4} strokeWidth="2" />
+            <circle className="chart-point-completed" cx={getX(i)} cy={getY(d.completed)} r={3} />
             <text x={getX(i)} y={paddingTop + chartHeight + 20} textAnchor="middle" className="chart-axis-label-x">
               {d.term}
             </text>
@@ -105,7 +93,7 @@ const AdminTrendChart = ({ data = [] }) => {
           <span className="legend-text">Exams Scheduled</span>
         </div>
         <div className="chart-legend-item">
-          <span className="legend-indicator" style={{ backgroundColor: '#22C55E' }} />
+          <span className="legend-indicator legend-completed" />
           <span className="legend-text">Exams Completed & Verified</span>
         </div>
       </div>
