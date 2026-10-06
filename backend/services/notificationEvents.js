@@ -227,6 +227,85 @@ const notifyResultPublished = async (result) => {
     });
 };
 
+const sessionLabel = (session) => {
+    const name = session?.name || "";
+    if (!name) return "";
+    return /session/i.test(name) ? name : `${name} Session`;
+};
+
+const dutyLines = (schedule, room) => {
+    const lines = [paperLabel(schedule.examination, schedule.subject)];
+    const date = formatDate(schedule.date);
+    const session = sessionLabel(schedule.session);
+
+    if (date) lines.push(date);
+    if (session) lines.push(session);
+    if (schedule.reportingTime) lines.push(`Reporting: ${schedule.reportingTime}`);
+    if (room?.roomNumber) lines.push(`Room: ${room.roomNumber}`);
+    if (room?.building) lines.push(`Building: ${room.building}`);
+    return lines.filter(Boolean);
+};
+
+const notifyDutyAssigned = async (duty, schedule, room) => {
+    if (schedule.status !== "scheduled") return false;
+
+    return createNotification({
+        recipient: idOf(duty.faculty),
+        title: "Invigilation Duty Assigned",
+        message: dutyLines(schedule, room).join("\n"),
+        type: "exam",
+        referenceId: duty._id,
+        eventKey: `duty-assigned:${idOf(duty)}`
+    });
+};
+
+const notifyDutyRoomChanged = async (duty, schedule, fromRoom, toRoom) => {
+    if (schedule.status !== "scheduled") return false;
+    const fromLabel = fromRoom?.roomNumber || "";
+    const toLabel = toRoom?.roomNumber || "";
+    if (!fromLabel || !toLabel || fromLabel === toLabel) return false;
+
+    return createNotification({
+        recipient: idOf(duty.faculty),
+        title: "Invigilation Duty Changed",
+        message: `Your room has changed from ${fromLabel} to ${toLabel}.`,
+        type: "exam",
+        referenceId: duty._id,
+        eventKey: `duty-room:${idOf(duty)}:${idOf(fromRoom)}:${idOf(toRoom)}`
+    });
+};
+
+const notifyDutyRescheduled = async (duty, schedule) => {
+    if (schedule.status !== "scheduled") return false;
+    const label = paperLabel(schedule.examination, schedule.subject);
+    const when = formatDate(schedule.date);
+    if (!when) return false;
+
+    return createNotification({
+        recipient: idOf(duty.faculty),
+        title: "Invigilation Duty Rescheduled",
+        message: `Your duty for ${label} has moved to ${when}.`,
+        type: "exam",
+        referenceId: duty._id,
+        eventKey: `duty-reschedule:${idOf(duty)}:${when}:${idOf(schedule.session)}`
+    });
+};
+
+const notifyDutyCancelled = async (duty, schedule, room) => {
+    if (schedule.status !== "scheduled") return false;
+    const label = paperLabel(schedule.examination, schedule.subject);
+    const roomLabel = room?.roomNumber ? ` in ${room.roomNumber}` : "";
+
+    return createNotification({
+        recipient: idOf(duty.faculty),
+        title: "Invigilation Duty Cancelled",
+        message: `Your invigilation duty for ${label}${roomLabel} has been cancelled.`,
+        type: "exam",
+        referenceId: duty._id,
+        eventKey: `duty-cancelled:${idOf(duty)}`
+    });
+};
+
 module.exports = {
     createNotification,
     createExamNotificationsForStudents,
@@ -234,5 +313,9 @@ module.exports = {
     notifyRoomChanged,
     notifyRescheduled,
     notifySeatingPublished,
-    notifyResultPublished
+    notifyResultPublished,
+    notifyDutyAssigned,
+    notifyDutyRoomChanged,
+    notifyDutyRescheduled,
+    notifyDutyCancelled
 };

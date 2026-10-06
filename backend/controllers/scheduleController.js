@@ -32,6 +32,10 @@ const {
     notifyRoomChanged,
     notifyRescheduled
 } = require("../services/notificationEvents");
+const {
+    syncDutiesAfterScheduleChange,
+    cancelDutiesForSchedule
+} = require("../services/invigilationService");
 
 const idOf = (value) => (value ? String(value._id || value) : "");
 
@@ -403,6 +407,11 @@ const updateSchedule = async (req, res) => {
             newcomers: nextStudents.filter((studentId) => !previousStudents.has(studentId)),
             staying: nextStudents.filter((studentId) => previousStudents.has(studentId))
         });
+        try {
+            await syncDutiesAfterScheduleChange(previous, item);
+        } catch (error) {
+            console.error("Invigilation schedule sync failed:", error.message);
+        }
 
         res.status(200).json({
             message: "Schedule updated",
@@ -419,9 +428,16 @@ const deleteSchedule = async (req, res) => {
     try {
         if (!isObjectId(req.params.id)) return invalidId(res, "schedule id");
 
-        const item = await Schedule.findByIdAndDelete(req.params.id);
+        const item = await Schedule.findById(req.params.id);
 
         if (!item) return res.status(404).json({ message: "Schedule not found" });
+
+        try {
+            await cancelDutiesForSchedule(item);
+        } catch (error) {
+            console.error("Invigilation schedule cancel failed:", error.message);
+        }
+        await item.deleteOne();
 
         res.status(200).json({ message: "Schedule deleted" });
     } catch (error) {

@@ -138,6 +138,12 @@ const ExaminationCellDashboard = () => {
         </Panel>
       </Split>
 
+      <Panel title="Invigilation" action={<TextLink to="/examination-cell/invigilation">Open invigilation</TextLink>}>
+        <p className="role-note">
+          Assign faculty to scheduled rooms, review conflicts, and balance duty counts.
+        </p>
+      </Panel>
+
       <Panel title="Recent Examination Activity">
         <UpdateList
           items={activity}

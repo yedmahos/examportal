@@ -162,6 +162,12 @@ const SuperAdminDashboard = () => {
         </Panel>
       </Split>
 
+      <Panel title="Invigilation" action={<TextLink to="/super-admin/invigilation">Open invigilation</TextLink>}>
+        <p className="role-note">
+          Review faculty duties, workload, and room assignments across departments.
+        </p>
+      </Panel>
+
       <Panel title="Recent System Activity">
         <UpdateList
           items={activity}

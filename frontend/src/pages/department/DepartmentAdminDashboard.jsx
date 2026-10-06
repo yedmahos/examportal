@@ -144,6 +144,12 @@ const DepartmentAdminDashboard = () => {
         )}
       </div>
 
+      <Panel title="Invigilation" action={<TextLink to="/department-admin/invigilation">Review duties</TextLink>}>
+        <p className="role-note">
+          Assigned duties and faculty workload for this department can be reviewed here. Allocation stays with the Examination Cell.
+        </p>
+      </Panel>
+
       <Panel title="Department Examination Schedule" action={<TextLink to="/department-admin/schedules">Open schedules</TextLink>}>
         <PaperList
           papers={upcoming.map(schedulePaper)}

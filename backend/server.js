@@ -54,6 +54,7 @@ const conflictRoutes = require("./routes/conflictRoutes");
 const roomRoutes = require("./routes/roomRoutes");
 const roomAllocationRoutes = require("./routes/roomAllocationRoutes");
 const seatingRoutes = require("./routes/seatingRoutes");
+const invigilationRoutes = require("./routes/invigilationRoutes");
 const { ensureCatalog } = require("./services/catalogSeed");
 
 const app = express();
@@ -107,6 +108,7 @@ app.use("/api/conflicts", conflictRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/room-allocations", roomAllocationRoutes);
 app.use("/api/seating-plans", seatingRoutes);
+app.use("/api/invigilation", invigilationRoutes);
 
 // Unknown route handler
 app.use((req, res) => {
