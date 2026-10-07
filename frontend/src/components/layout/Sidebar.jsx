@@ -32,6 +32,12 @@ const Sidebar = ({
     navigate('/login');
   };
 
+  const accountName = user?.name || 'Account';
+  const accountRole = roleLabel(role);
+  const showRole = Boolean(accountRole)
+    && accountName.trim().toLowerCase() !== accountRole.trim().toLowerCase();
+  const showAccountCopy = !collapsed || isMobileOpen;
+
   const studentNavGroups = [
     {
       groupTitle: null,
@@ -265,23 +271,20 @@ const Sidebar = ({
           <NavLink
             to={profilePath(role)}
             className={({ isActive }) => `sidebar-account ${isActive ? 'active' : ''}`}
-            title={collapsed ? (user?.name || 'Account') : undefined}
-            aria-label={`${user?.name || 'Account'}, ${roleLabel(role)}`}
+            title={showAccountCopy ? undefined : accountName}
+            aria-label={showRole ? `${accountName}, ${accountRole}` : accountName}
             onClick={() => isMobileOpen && onCloseMobile()}
           >
             <Avatar
               src={user?.profileImage || user?.avatar}
-              name={user?.name || 'Account'}
+              name={accountName}
               size="sm"
             />
-            {!collapsed && (
-              <>
-                <span className="sidebar-account-copy">
-                  <span className="sidebar-account-name">{user?.name || 'Account'}</span>
-                  <span className="sidebar-account-role">{roleLabel(role)}</span>
-                </span>
-                <ChevronRight size={16} className="sidebar-account-chevron" aria-hidden="true" />
-              </>
+            {showAccountCopy && (
+              <span className="sidebar-account-copy">
+                <span className="sidebar-account-name">{accountName}</span>
+                {showRole && <span className="sidebar-account-role">{accountRole}</span>}
+              </span>
             )}
           </NavLink>
           <button
@@ -292,7 +295,6 @@ const Sidebar = ({
             aria-label="Log out"
           >
             <LogOut size={18} />
-            {!collapsed && <span>Log out</span>}
           </button>
         </div>
       </aside>

@@ -54,7 +54,6 @@
 .transcend .auth-title,
 .transcend .auth-brand-name,
 .transcend .sidebar-app-name,
-.transcend .sidebar-account-name,
 .transcend .card-title,
 .transcend .admin-panel-title,
 .transcend .panel-title,
@@ -96,6 +95,10 @@
 .transcend .table-grade-pill,
 .transcend .table-gpa-val {
   font-weight: 600;
+}
+
+.transcend .sidebar-account-name {
+  font-weight: 500;
 }
 
 .transcend h1,
