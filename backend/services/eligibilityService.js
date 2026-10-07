@@ -3,6 +3,7 @@ const Subject = require("../models/Subject");
 const Enrollment = require("../models/Enrollment");
 const SubjectRegistration = require("../models/SubjectRegistration");
 const ExamEligibility = require("../models/ExamEligibility");
+const Schedule = require("../models/Schedule");
 const { isObjectId } = require("../utils/http");
 
 const fail = (status, message) => {
@@ -178,11 +179,61 @@ const calculateEligibility = async ({ examinationId, subjectId }) => {
     };
 };
 
+const VISIBLE_ELIGIBILITY_STATUSES = ["eligible", "registered"];
+
+const scheduleEligibilityQuery = (studentId, examinationId, subjectId) => {
+    const query = {
+        student: studentId,
+        eligibilityStatus: { $in: VISIBLE_ELIGIBILITY_STATUSES }
+    };
+
+    if (examinationId) query.examination = examinationId;
+    if (subjectId) query.subject = subjectId;
+
+    return query;
+};
+
+const studentCanViewExamination = async (studentId, examinationId, subjectId) => {
+    if (!studentId || !examinationId) return false;
+
+    return Boolean(await ExamEligibility.exists(
+        scheduleEligibilityQuery(studentId, examinationId, subjectId)
+    ));
+};
+
+// Same student scope as My Schedule: a scheduled paper that still
+// lists this student and keeps an eligible or registered row.
+const schedulesVisibleToStudent = async (studentId) => {
+    const schedules = await Schedule.find({
+        eligibleStudents: studentId,
+        status: "scheduled"
+    }).sort({ date: 1 });
+
+    const visible = [];
+
+    for (const schedule of schedules) {
+        const allowed = await studentCanViewExamination(
+            studentId,
+            schedule.examination,
+            schedule.subject
+        );
+
+        if (allowed) visible.push(schedule);
+    }
+
+    return visible;
+};
+
+const visibleExaminationIdsForStudent = async (studentId) => {
+    const schedules = await schedulesVisibleToStudent(studentId);
+    return [...new Set(schedules.map((schedule) => String(schedule.examination)))];
+};
+
 const eligibleStudentIds = async ({ examinationId, subjectId }) => {
     const records = await ExamEligibility.find({
         examination: examinationId,
         subject: subjectId,
-        eligibilityStatus: { $in: ["eligible", "registered"] }
+        eligibilityStatus: { $in: VISIBLE_ELIGIBILITY_STATUSES }
     }).select("student");
 
     return records.map((record) => record.student);
@@ -194,7 +245,11 @@ const snapshotEligibleStudentIds = async ({ examinationId, subjectId }) => {
 };
 
 module.exports = {
+    VISIBLE_ELIGIBILITY_STATUSES,
     calculateEligibility,
     eligibleStudentIds,
-    snapshotEligibleStudentIds
+    snapshotEligibleStudentIds,
+    visibleExaminationIdsForStudent,
+    studentCanViewExamination,
+    schedulesVisibleToStudent
 };
