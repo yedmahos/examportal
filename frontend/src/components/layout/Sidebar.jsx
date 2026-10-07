@@ -58,12 +58,6 @@ const Sidebar = ({
         { to: '/notifications', label: 'Notifications', icon: Bell },
       ],
     },
-    {
-      groupTitle: 'Account',
-      items: [
-        { to: '/profile', label: 'My Profile', icon: User },
-      ],
-    },
   ];
 
   const staffRoles = ['admin', 'super_admin', 'examination_cell', 'department_admin', 'faculty'];
@@ -108,12 +102,6 @@ const Sidebar = ({
         { to: '/admin/announcements', label: 'Announcements', icon: Megaphone, roles: ['admin', 'super_admin'] },
       ],
     },
-    {
-      groupTitle: 'Account',
-      items: [
-        { to: '/admin/profile', label: 'Profile', icon: User, roles: staffRoles },
-      ],
-    },
   ].map((group) => ({
     ...group,
     items: group.items.filter((item) => canAccess(role, item.roles)),
@@ -128,7 +116,6 @@ const Sidebar = ({
         link('/student/results', 'Results', Award),
       ] },
       { groupTitle: 'Updates', items: [link('/student/notifications', 'Notifications', Bell)] },
-      { groupTitle: 'Account', items: [link('/student/profile', 'Profile', User)] },
     ],
     faculty: [
       { items: [link('/faculty/dashboard', 'Dashboard', LayoutDashboard)] },
@@ -137,7 +124,6 @@ const Sidebar = ({
         link('/faculty/schedule', 'My Schedule', BookOpen),
       ] },
       { groupTitle: 'Updates', items: [link('/faculty/notifications', 'Notifications', Bell)] },
-      { groupTitle: 'Account', items: [link('/faculty/profile', 'Profile', User)] },
     ],
     department_admin: [
       { items: [link('/department-admin/dashboard', 'Dashboard', LayoutDashboard)] },
@@ -150,7 +136,6 @@ const Sidebar = ({
         link('/department-admin/schedules', 'Department Schedules', Calendar),
       ] },
       { groupTitle: 'Updates', items: [link('/department-admin/notifications', 'Notifications', Bell)] },
-      { groupTitle: 'Account', items: [link('/department-admin/profile', 'Profile', User)] },
     ],
     examination_cell: [
       { items: [link('/examination-cell/dashboard', 'Dashboard', LayoutDashboard)] },
@@ -163,7 +148,6 @@ const Sidebar = ({
         link('/examination-cell/rooms', 'Rooms', BookOpen),
       ] },
       { groupTitle: 'Updates', items: [link('/examination-cell/notifications', 'Notifications', Bell)] },
-      { groupTitle: 'Account', items: [link('/examination-cell/profile', 'Profile', User)] },
     ],
     super_admin: [
       { items: [link('/super-admin/dashboard', 'Dashboard', LayoutDashboard)] },
@@ -178,7 +162,6 @@ const Sidebar = ({
         link('/super-admin/rooms', 'Rooms', BookOpen),
       ] },
       { groupTitle: 'Updates', items: [link('/super-admin/notifications', 'Notifications', Bell)] },
-      { groupTitle: 'Account', items: [link('/super-admin/profile', 'Profile', User)] },
     ],
   };
 
