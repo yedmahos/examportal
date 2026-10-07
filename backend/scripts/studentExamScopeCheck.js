@@ -81,10 +81,10 @@ const run = async () => {
     ]);
 
     await ExamEligibility.create([
-        { student: studentA._id, examination: mid._id, subject: subjectA, eligibilityStatus: "eligible" },
-        { student: studentA._id, examination: extra._id, subject: subjectC, eligibilityStatus: "registered" },
-        { student: studentA._id, examination: midsems._id, subject: subjectB, eligibilityStatus: "blocked" },
-        { student: studentB._id, examination: midsems._id, subject: subjectB, eligibilityStatus: "registered" }
+        { student: studentA._id, examination: mid._id, subject: subjectA, eligibilityStatus: "eligible", examRegistrationStatus: "not_registered" },
+        { student: studentA._id, examination: extra._id, subject: subjectC, eligibilityStatus: "registered", examRegistrationStatus: "registered" },
+        { student: studentA._id, examination: midsems._id, subject: subjectB, eligibilityStatus: "blocked", examRegistrationStatus: "not_registered" },
+        { student: studentB._id, examination: midsems._id, subject: subjectB, eligibilityStatus: "registered", examRegistrationStatus: "registered" }
     ]);
 
     const future = new Date("2026-10-08T00:00:00.000Z");
@@ -131,7 +131,7 @@ const run = async () => {
     const tokenCell = tokenFor(cell);
 
     const listA = await request("GET", "/api/exams?studentId=" + studentB._id.toString(), { token: tokenA });
-    check("student A list ignores studentId query", listA.status === 200 && titles(listA.data).join(",") === "EXTRA,MID", titles(listA.data).join(","));
+    check("unregistered eligibility is hidden and studentId is ignored", listA.status === 200 && titles(listA.data).join(",") === "EXTRA", titles(listA.data).join(","));
 
     const listB = await request("GET", "/api/exams", { token: tokenB });
     check("student B sees only MIDSEMS", listB.status === 200 && titles(listB.data).join(",") === "MIDSEMS", titles(listB.data).join(","));
@@ -142,8 +142,11 @@ const run = async () => {
     const searchOther = await request("GET", "/api/exams?search=MIDSEMS", { token: tokenA });
     check("student search cannot reveal another exam", searchOther.status === 200 && titles(searchOther.data).length === 0);
 
-    const detailOwn = await request("GET", `/api/exams/${mid._id}`, { token: tokenA });
-    check("student can open an eligible exam", detailOwn.status === 200 && detailOwn.data.exam.title === "MID");
+    const detailOwn = await request("GET", `/api/exams/${extra._id}`, { token: tokenA });
+    check("student can open a registered exam", detailOwn.status === 200 && detailOwn.data.exam.title === "EXTRA");
+
+    const detailUnregistered = await request("GET", `/api/exams/${mid._id}`, { token: tokenA });
+    check("eligible but unregistered exam is denied", detailUnregistered.status === 403);
 
     const detailOther = await request("GET", `/api/exams/${midsems._id}`, { token: tokenA });
     check("student cannot open an unrelated exam", detailOther.status === 403);

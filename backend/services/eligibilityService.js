@@ -180,7 +180,7 @@ const calculateEligibility = async ({ examinationId, subjectId }) => {
 
 const VISIBLE_ELIGIBILITY_STATUSES = ["eligible", "registered"];
 
-const visibleEligibilityQuery = (studentId, examinationId, subjectId) => {
+const scheduleEligibilityQuery = (studentId, examinationId, subjectId) => {
     const query = {
         student: studentId,
         eligibilityStatus: { $in: VISIBLE_ELIGIBILITY_STATUSES }
@@ -192,15 +192,39 @@ const visibleEligibilityQuery = (studentId, examinationId, subjectId) => {
     return query;
 };
 
+// Exam notices are registration-scoped. "eligible" or a missing
+// examRegistrationStatus means the student has not registered.
+const registeredExaminationQuery = (studentId, examinationId) => {
+    const query = {
+        student: studentId,
+        $or: [
+            { eligibilityStatus: "registered" },
+            { examRegistrationStatus: "registered", eligibilityStatus: { $in: VISIBLE_ELIGIBILITY_STATUSES } }
+        ]
+    };
+
+    if (examinationId) query.examination = examinationId;
+
+    return query;
+};
+
 const visibleExaminationIdsForStudent = async (studentId) => {
-    return ExamEligibility.find(visibleEligibilityQuery(studentId)).distinct("examination");
+    return ExamEligibility.find(registeredExaminationQuery(studentId)).distinct("examination");
 };
 
 const studentCanViewExamination = async (studentId, examinationId, subjectId) => {
     if (!studentId || !examinationId) return false;
 
     return Boolean(await ExamEligibility.exists(
-        visibleEligibilityQuery(studentId, examinationId, subjectId)
+        scheduleEligibilityQuery(studentId, examinationId, subjectId)
+    ));
+};
+
+const studentHasRegisteredExamination = async (studentId, examinationId) => {
+    if (!studentId || !examinationId) return false;
+
+    return Boolean(await ExamEligibility.exists(
+        registeredExaminationQuery(studentId, examinationId)
     ));
 };
 
@@ -225,5 +249,6 @@ module.exports = {
     eligibleStudentIds,
     snapshotEligibleStudentIds,
     visibleExaminationIdsForStudent,
-    studentCanViewExamination
+    studentCanViewExamination,
+    studentHasRegisteredExamination
 };
