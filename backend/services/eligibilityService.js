@@ -3,6 +3,7 @@ const Subject = require("../models/Subject");
 const Enrollment = require("../models/Enrollment");
 const SubjectRegistration = require("../models/SubjectRegistration");
 const ExamEligibility = require("../models/ExamEligibility");
+const Schedule = require("../models/Schedule");
 const { isObjectId } = require("../utils/http");
 
 const fail = (status, message) => {
@@ -192,26 +193,6 @@ const scheduleEligibilityQuery = (studentId, examinationId, subjectId) => {
     return query;
 };
 
-// Exam notices are registration-scoped. "eligible" or a missing
-// examRegistrationStatus means the student has not registered.
-const registeredExaminationQuery = (studentId, examinationId) => {
-    const query = {
-        student: studentId,
-        $or: [
-            { eligibilityStatus: "registered" },
-            { examRegistrationStatus: "registered", eligibilityStatus: { $in: VISIBLE_ELIGIBILITY_STATUSES } }
-        ]
-    };
-
-    if (examinationId) query.examination = examinationId;
-
-    return query;
-};
-
-const visibleExaminationIdsForStudent = async (studentId) => {
-    return ExamEligibility.find(registeredExaminationQuery(studentId)).distinct("examination");
-};
-
 const studentCanViewExamination = async (studentId, examinationId, subjectId) => {
     if (!studentId || !examinationId) return false;
 
@@ -220,12 +201,32 @@ const studentCanViewExamination = async (studentId, examinationId, subjectId) =>
     ));
 };
 
-const studentHasRegisteredExamination = async (studentId, examinationId) => {
-    if (!studentId || !examinationId) return false;
+// Same student scope as My Schedule: a scheduled paper that still
+// lists this student and keeps an eligible or registered row.
+const schedulesVisibleToStudent = async (studentId) => {
+    const schedules = await Schedule.find({
+        eligibleStudents: studentId,
+        status: "scheduled"
+    }).sort({ date: 1 });
 
-    return Boolean(await ExamEligibility.exists(
-        registeredExaminationQuery(studentId, examinationId)
-    ));
+    const visible = [];
+
+    for (const schedule of schedules) {
+        const allowed = await studentCanViewExamination(
+            studentId,
+            schedule.examination,
+            schedule.subject
+        );
+
+        if (allowed) visible.push(schedule);
+    }
+
+    return visible;
+};
+
+const visibleExaminationIdsForStudent = async (studentId) => {
+    const schedules = await schedulesVisibleToStudent(studentId);
+    return [...new Set(schedules.map((schedule) => String(schedule.examination)))];
 };
 
 const eligibleStudentIds = async ({ examinationId, subjectId }) => {
@@ -250,5 +251,5 @@ module.exports = {
     snapshotEligibleStudentIds,
     visibleExaminationIdsForStudent,
     studentCanViewExamination,
-    studentHasRegisteredExamination
+    schedulesVisibleToStudent
 };

@@ -6,7 +6,7 @@ const Schedule = require("../models/Schedule");
 const ScheduleApproval = require("../models/ScheduleApproval");
 const ScheduleVersion = require("../models/ScheduleVersion");
 const RoomAllocation = require("../models/RoomAllocation");
-const { studentCanViewExamination } = require("../services/eligibilityService");
+const { schedulesVisibleToStudent } = require("../services/eligibilityService");
 const { snapshotEligibleStudentIds } = require("../services/eligibilityService");
 const {
     detectConflicts,
@@ -533,28 +533,19 @@ const deleteSchedule = async (req, res) => {
 };
 
 const studentRetainsEligibility = async (schedule, studentId) => {
-    const examinationId = schedule.examination?._id || schedule.examination;
-    const subjectId = schedule.subject?._id || schedule.subject;
-    return studentCanViewExamination(studentId, examinationId, subjectId);
+    const visible = await schedulesVisibleToStudent(studentId);
+    return visible.some((item) => String(item._id) === String(schedule._id));
 };
 
 const mySchedules = async (req, res) => {
     try {
-        const items = await populateSchedule(
-            Schedule.find({
-                eligibleStudents: req.user.userId,
-                status: "scheduled"
-            }).sort({ date: 1 })
-        );
-        const visible = [];
+        const visible = await schedulesVisibleToStudent(req.user.userId);
+        const ids = visible.map((item) => item._id);
+        const items = ids.length
+            ? await populateSchedule(Schedule.find({ _id: { $in: ids } }).sort({ date: 1 }))
+            : [];
 
-        for (const item of items) {
-            if (await studentRetainsEligibility(item, req.user.userId)) {
-                visible.push(item);
-            }
-        }
-
-        res.status(200).json({ items: visible });
+        res.status(200).json({ items });
     } catch (error) {
         return handleError(res, error, "My schedules error:");
     }

@@ -1,6 +1,7 @@
 /**
- * Student exam visibility is limited to ExamEligibility rows
- * with status eligible or registered for the authenticated student.
+ * Student exam visibility matches My Schedule: a scheduled paper that
+ * lists the authenticated student and still has an eligible or
+ * registered ExamEligibility row. Staff lists stay role-scoped only.
  */
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
@@ -12,6 +13,7 @@ const User = require("../models/User");
 const Exam = require("../models/Exam");
 const ExamEligibility = require("../models/ExamEligibility");
 const Schedule = require("../models/Schedule");
+const Department = require("../models/Department");
 
 const tokenFor = (user) => jwt.sign(
     { userId: user._id.toString(), role: user.role },
@@ -66,25 +68,31 @@ const run = async () => {
     const subjectC = new mongoose.Types.ObjectId();
     const session = new mongoose.Types.ObjectId();
 
-    const [studentA, studentB, studentNone, faculty, cell] = await User.create([
+    const department = await Department.create({ name: "Computer Science", code: "CSE" });
+
+    const [studentA, studentB, studentNone, faculty, cell, deptAdmin, superAdmin] = await User.create([
         { name: "Student A", email: "scope-a@example.com", password: "secret", role: "student", status: "active" },
         { name: "Student B", email: "scope-b@example.com", password: "secret", role: "student", status: "active" },
         { name: "Student None", email: "scope-none@example.com", password: "secret", role: "student", status: "active" },
         { name: "Faculty", email: "scope-faculty@example.com", password: "secret", role: "faculty", status: "active" },
-        { name: "Exam Cell", email: "scope-cell@example.com", password: "secret", role: "examination_cell", status: "active" }
+        { name: "Exam Cell", email: "scope-cell@example.com", password: "secret", role: "examination_cell", status: "active" },
+        { name: "Dept Admin", email: "scope-dept@example.com", password: "secret", role: "department_admin", status: "active", departmentRef: department._id },
+        { name: "Super Admin", email: "scope-super@example.com", password: "secret", role: "super_admin", status: "active" }
     ]);
 
-    const [mid, midsems, extra] = await Exam.create([
-        { title: "MID", subject: "BDA", examCode: "MAN1102", semester: 5, status: "scheduled", createdBy: cell._id },
+    const [mid, midsems, extra, osExam] = await Exam.create([
+        { title: "MID", subject: "BDA", examCode: "MAN1102", semester: 5, status: "scheduled", department: "Computer Science", createdBy: cell._id },
         { title: "MIDSEMS", subject: "COA", examCode: "COA", semester: 5, status: "scheduled", venue: "Auditorium Hall B", room: "104", createdBy: cell._id },
-        { title: "EXTRA", subject: "PHY", examCode: "PHY101", semester: 1, status: "scheduled", createdBy: cell._id }
+        { title: "EXTRA", subject: "PHY", examCode: "PHY101", semester: 1, status: "scheduled", createdBy: cell._id },
+        { title: "OS", subject: "OS", examCode: "OS", semester: 5, status: "scheduled", createdBy: cell._id }
     ]);
 
     await ExamEligibility.create([
         { student: studentA._id, examination: mid._id, subject: subjectA, eligibilityStatus: "eligible", examRegistrationStatus: "not_registered" },
         { student: studentA._id, examination: extra._id, subject: subjectC, eligibilityStatus: "registered", examRegistrationStatus: "registered" },
         { student: studentA._id, examination: midsems._id, subject: subjectB, eligibilityStatus: "blocked", examRegistrationStatus: "not_registered" },
-        { student: studentB._id, examination: midsems._id, subject: subjectB, eligibilityStatus: "registered", examRegistrationStatus: "registered" }
+        { student: studentB._id, examination: midsems._id, subject: subjectB, eligibilityStatus: "registered", examRegistrationStatus: "registered" },
+        { student: studentB._id, examination: osExam._id, subject: subjectC, eligibilityStatus: "eligible", examRegistrationStatus: "not_registered" }
     ]);
 
     const future = new Date("2026-10-08T00:00:00.000Z");
@@ -121,6 +129,17 @@ const run = async () => {
             status: "scheduled",
             eligibleStudents: [studentA._id],
             createdBy: cell._id
+        },
+        {
+            examination: osExam._id,
+            subject: subjectC,
+            date: future,
+            session,
+            duration: 180,
+            reportingTime: "09:00",
+            status: "scheduled",
+            eligibleStudents: [studentB._id],
+            createdBy: cell._id
         }
     ]);
 
@@ -129,12 +148,14 @@ const run = async () => {
     const tokenNone = tokenFor(studentNone);
     const tokenFaculty = tokenFor(faculty);
     const tokenCell = tokenFor(cell);
+    const tokenDept = tokenFor(deptAdmin);
+    const tokenSuper = tokenFor(superAdmin);
 
     const listA = await request("GET", "/api/exams?studentId=" + studentB._id.toString(), { token: tokenA });
-    check("unregistered eligibility is hidden and studentId is ignored", listA.status === 200 && titles(listA.data).join(",") === "EXTRA", titles(listA.data).join(","));
+    check("one eligible scheduled exam is returned and studentId is ignored", listA.status === 200 && titles(listA.data).join(",") === "MID", titles(listA.data).join(","));
 
     const listB = await request("GET", "/api/exams", { token: tokenB });
-    check("student B sees only MIDSEMS", listB.status === 200 && titles(listB.data).join(",") === "MIDSEMS", titles(listB.data).join(","));
+    check("student with multiple scheduled exams sees only those", listB.status === 200 && titles(listB.data).join(",") === "MIDSEMS,OS", titles(listB.data).join(","));
 
     const listNone = await request("GET", "/api/exams", { token: tokenNone });
     check("student with no eligibility gets an empty list", listNone.status === 200 && titles(listNone.data).length === 0 && listNone.data.total === 0, JSON.stringify(listNone.data));
@@ -142,23 +163,29 @@ const run = async () => {
     const searchOther = await request("GET", "/api/exams?search=MIDSEMS", { token: tokenA });
     check("student search cannot reveal another exam", searchOther.status === 200 && titles(searchOther.data).length === 0);
 
-    const detailOwn = await request("GET", `/api/exams/${extra._id}`, { token: tokenA });
-    check("student can open a registered exam", detailOwn.status === 200 && detailOwn.data.exam.title === "EXTRA");
+    const detailOwn = await request("GET", `/api/exams/${mid._id}`, { token: tokenA });
+    check("student can open an eligible scheduled exam", detailOwn.status === 200 && detailOwn.data.exam.title === "MID");
 
-    const detailUnregistered = await request("GET", `/api/exams/${mid._id}`, { token: tokenA });
-    check("eligible but unregistered exam is denied", detailUnregistered.status === 403);
+    const detailRegisteredUnscheduled = await request("GET", `/api/exams/${extra._id}`, { token: tokenA });
+    check("registered exam without a visible schedule is denied", detailRegisteredUnscheduled.status === 403);
 
     const detailOther = await request("GET", `/api/exams/${midsems._id}`, { token: tokenA });
     check("student cannot open an unrelated exam", detailOther.status === 403);
 
-    const detailBlocked = await request("GET", `/api/exams/${midsems._id}?studentId=${studentB._id}`, { token: tokenA });
-    check("blocked eligibility stays denied", detailBlocked.status === 403);
+    const detailBlocked = await request("GET", `/api/exams/${osExam._id}?studentId=${studentB._id}`, { token: tokenA });
+    check("forged studentId cannot open another student's exam", detailBlocked.status === 403);
 
     const facultyList = await request("GET", "/api/exams", { token: tokenFaculty });
-    check("faculty list stays unscoped", facultyList.status === 200 && titles(facultyList.data).join(",") === "EXTRA,MID,MIDSEMS", titles(facultyList.data).join(","));
+    check("faculty list stays unscoped", facultyList.status === 200 && titles(facultyList.data).join(",") === "EXTRA,MID,MIDSEMS,OS", titles(facultyList.data).join(","));
 
     const cellList = await request("GET", "/api/exams", { token: tokenCell });
-    check("examination cell list stays unscoped", cellList.status === 200 && titles(cellList.data).length === 3);
+    check("examination cell list stays unscoped", cellList.status === 200 && titles(cellList.data).length === 4);
+
+    const deptList = await request("GET", "/api/exams", { token: tokenDept });
+    check("department admin stays on department scope", deptList.status === 200 && titles(deptList.data).join(",") === "MID", titles(deptList.data).join(","));
+
+    const superList = await request("GET", "/api/exams", { token: tokenSuper });
+    check("super admin list stays unscoped", superList.status === 200 && titles(superList.data).length === 4);
 
     const mineA = await request("GET", "/api/schedules/mine", { token: tokenA });
     const mineATitles = (mineA.data?.items || []).map((item) => String(item.examination?.title || item.examination));

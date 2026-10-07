@@ -8,8 +8,7 @@ const ExamType = require("../models/ExamType");
 const ExamSession = require("../models/ExamSession");
 const { logActivity } = require("../services/activityLogger");
 const {
-    visibleExaminationIdsForStudent,
-    studentHasRegisteredExamination
+    visibleExaminationIdsForStudent
 } = require("../services/eligibilityService");
 const { roleSatisfies } = require("../utils/roles");
 const { isObjectId, parseDateOnly, isTime } = require("../utils/http");
@@ -425,8 +424,8 @@ const getExamById = async (req, res) => {
         }
 
         if (req.user.role === "student") {
-            const allowed = await studentHasRegisteredExamination(req.user.userId, exam._id);
-            if (!allowed) {
+            const visibleIds = await visibleExaminationIdsForStudent(req.user.userId);
+            if (!visibleIds.includes(String(exam._id))) {
                 return res.status(403).json({ message: "Access denied" });
             }
         }
