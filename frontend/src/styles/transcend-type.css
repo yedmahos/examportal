@@ -134,3 +134,134 @@
 .transcend .stat-caption {
   font-weight: 400;
 }
+
+/* Readable dashboard scale. Typography properties only. */
+.transcend h1,
+.transcend h2,
+.transcend h3,
+.transcend h4,
+.transcend h5,
+.transcend h6,
+.transcend .page-heading,
+.transcend .admin-panel-title,
+.transcend .card-title,
+.transcend .panel-title,
+.transcend .stat-value,
+.transcend .sidebar-app-name {
+  letter-spacing: normal;
+}
+
+.transcend .page-heading,
+.transcend .role-dashboard h1,
+.transcend .admin-dashboard-page h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: normal;
+}
+
+.transcend .admin-panel-title,
+.transcend .card-title,
+.transcend .panel-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.transcend .role-paper h4,
+.transcend .role-compact-results > li > div > strong,
+.transcend .role-compact-grade,
+.transcend .role-update-top strong,
+.transcend .role-action-list strong,
+.transcend .empty-state-title {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: normal;
+}
+
+.transcend .phase1-detail-row > span {
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: normal;
+  color: var(--text-muted);
+}
+
+.transcend .phase1-detail-row > strong {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: normal;
+  color: var(--text-main);
+}
+
+.transcend .role-paper p,
+.transcend .role-update-list p,
+.transcend .role-update-top span,
+.transcend .role-action-list p,
+.transcend .role-compact-results span,
+.transcend .empty-state-desc,
+.transcend .stat-caption,
+.transcend .card-subtitle,
+.transcend .page-subheading {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: normal;
+}
+
+.transcend .stat-card-label,
+.transcend .sidebar-group-label,
+.transcend .table-th,
+.transcend th {
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+}
+
+.transcend .stat-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.transcend .sidebar-nav-item {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: normal;
+}
+
+.transcend .role-text-link {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: normal;
+}
+
+.transcend .status-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.transcend .sidebar-app-name {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.transcend .sidebar-app-role {
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.transcend .table-td,
+.transcend td {
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: normal;
+}
