@@ -7,6 +7,10 @@ const Batch = require("../models/Batch");
 const ExamType = require("../models/ExamType");
 const ExamSession = require("../models/ExamSession");
 const { logActivity } = require("../services/activityLogger");
+const {
+    visibleExaminationIdsForStudent,
+    studentCanViewExamination
+} = require("../services/eligibilityService");
 const { roleSatisfies } = require("../utils/roles");
 const { isObjectId, parseDateOnly, isTime } = require("../utils/http");
 const {
@@ -359,6 +363,10 @@ const getAllExams = async (req, res) => {
             ];
         }
 
+        if (req.user.role === "student") {
+            query._id = { $in: await visibleExaminationIdsForStudent(req.user.userId) };
+        }
+
         applyNamedDepartmentScope(query, await departmentScope(req));
 
         const { page, limit, skip } = parsePagination(req.query);
@@ -414,6 +422,13 @@ const getExamById = async (req, res) => {
             return res.status(404).json({
                 message: "Exam not found"
             });
+        }
+
+        if (req.user.role === "student") {
+            const allowed = await studentCanViewExamination(req.user.userId, exam._id);
+            if (!allowed) {
+                return res.status(403).json({ message: "Access denied" });
+            }
         }
 
         const scope = await departmentScope(req);

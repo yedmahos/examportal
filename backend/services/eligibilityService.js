@@ -178,11 +178,37 @@ const calculateEligibility = async ({ examinationId, subjectId }) => {
     };
 };
 
+const VISIBLE_ELIGIBILITY_STATUSES = ["eligible", "registered"];
+
+const visibleEligibilityQuery = (studentId, examinationId, subjectId) => {
+    const query = {
+        student: studentId,
+        eligibilityStatus: { $in: VISIBLE_ELIGIBILITY_STATUSES }
+    };
+
+    if (examinationId) query.examination = examinationId;
+    if (subjectId) query.subject = subjectId;
+
+    return query;
+};
+
+const visibleExaminationIdsForStudent = async (studentId) => {
+    return ExamEligibility.find(visibleEligibilityQuery(studentId)).distinct("examination");
+};
+
+const studentCanViewExamination = async (studentId, examinationId, subjectId) => {
+    if (!studentId || !examinationId) return false;
+
+    return Boolean(await ExamEligibility.exists(
+        visibleEligibilityQuery(studentId, examinationId, subjectId)
+    ));
+};
+
 const eligibleStudentIds = async ({ examinationId, subjectId }) => {
     const records = await ExamEligibility.find({
         examination: examinationId,
         subject: subjectId,
-        eligibilityStatus: { $in: ["eligible", "registered"] }
+        eligibilityStatus: { $in: VISIBLE_ELIGIBILITY_STATUSES }
     }).select("student");
 
     return records.map((record) => record.student);
@@ -194,7 +220,10 @@ const snapshotEligibleStudentIds = async ({ examinationId, subjectId }) => {
 };
 
 module.exports = {
+    VISIBLE_ELIGIBILITY_STATUSES,
     calculateEligibility,
     eligibleStudentIds,
-    snapshotEligibleStudentIds
+    snapshotEligibleStudentIds,
+    visibleExaminationIdsForStudent,
+    studentCanViewExamination
 };

@@ -6,7 +6,7 @@ const Schedule = require("../models/Schedule");
 const ScheduleApproval = require("../models/ScheduleApproval");
 const ScheduleVersion = require("../models/ScheduleVersion");
 const RoomAllocation = require("../models/RoomAllocation");
-const ExamEligibility = require("../models/ExamEligibility");
+const { studentCanViewExamination } = require("../services/eligibilityService");
 const { snapshotEligibleStudentIds } = require("../services/eligibilityService");
 const {
     detectConflicts,
@@ -535,14 +535,7 @@ const deleteSchedule = async (req, res) => {
 const studentRetainsEligibility = async (schedule, studentId) => {
     const examinationId = schedule.examination?._id || schedule.examination;
     const subjectId = schedule.subject?._id || schedule.subject;
-    const row = await ExamEligibility.findOne({
-        student: studentId,
-        examination: examinationId,
-        subject: subjectId,
-        eligibilityStatus: { $in: ["eligible", "registered"] }
-    }).select("_id");
-
-    return Boolean(row);
+    return studentCanViewExamination(studentId, examinationId, subjectId);
 };
 
 const mySchedules = async (req, res) => {
