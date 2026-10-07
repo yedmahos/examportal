@@ -14,7 +14,8 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { canAccess, roleLabel } from '../../utils/roles';
+import { canAccess, profilePath, roleLabel } from '../../utils/roles';
+import Avatar from '../common/Avatar';
 import './Layout.css';
 
 const Sidebar = ({
@@ -23,7 +24,7 @@ const Sidebar = ({
   isMobileOpen = false,
   onCloseMobile,
 }) => {
-  const { role, logout } = useAuth();
+  const { user, role, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -49,12 +50,6 @@ const Sidebar = ({
       groupTitle: 'Updates',
       items: [
         { to: '/notifications', label: 'Notifications', icon: Bell },
-      ],
-    },
-    {
-      groupTitle: 'Account',
-      items: [
-        { to: '/profile', label: 'My Profile', icon: User },
       ],
     },
   ];
@@ -101,12 +96,6 @@ const Sidebar = ({
         { to: '/admin/announcements', label: 'Announcements', icon: Megaphone, roles: ['admin', 'super_admin'] },
       ],
     },
-    {
-      groupTitle: 'Account',
-      items: [
-        { to: '/admin/profile', label: 'Profile', icon: User, roles: staffRoles },
-      ],
-    },
   ].map((group) => ({
     ...group,
     items: group.items.filter((item) => canAccess(role, item.roles)),
@@ -121,7 +110,6 @@ const Sidebar = ({
         link('/student/results', 'Results', Award),
       ] },
       { groupTitle: 'Updates', items: [link('/student/notifications', 'Notifications', Bell)] },
-      { groupTitle: 'Account', items: [link('/student/profile', 'Profile', User)] },
     ],
     faculty: [
       { items: [link('/faculty/dashboard', 'Dashboard', LayoutDashboard)] },
@@ -130,7 +118,6 @@ const Sidebar = ({
         link('/faculty/schedule', 'My Schedule', BookOpen),
       ] },
       { groupTitle: 'Updates', items: [link('/faculty/notifications', 'Notifications', Bell)] },
-      { groupTitle: 'Account', items: [link('/faculty/profile', 'Profile', User)] },
     ],
     department_admin: [
       { items: [link('/department-admin/dashboard', 'Dashboard', LayoutDashboard)] },
@@ -143,7 +130,6 @@ const Sidebar = ({
         link('/department-admin/schedules', 'Department Schedules', Calendar),
       ] },
       { groupTitle: 'Updates', items: [link('/department-admin/notifications', 'Notifications', Bell)] },
-      { groupTitle: 'Account', items: [link('/department-admin/profile', 'Profile', User)] },
     ],
     examination_cell: [
       { items: [link('/examination-cell/dashboard', 'Dashboard', LayoutDashboard)] },
@@ -156,7 +142,6 @@ const Sidebar = ({
         link('/examination-cell/rooms', 'Rooms', BookOpen),
       ] },
       { groupTitle: 'Updates', items: [link('/examination-cell/notifications', 'Notifications', Bell)] },
-      { groupTitle: 'Account', items: [link('/examination-cell/profile', 'Profile', User)] },
     ],
     super_admin: [
       { items: [link('/super-admin/dashboard', 'Dashboard', LayoutDashboard)] },
@@ -171,11 +156,18 @@ const Sidebar = ({
         link('/super-admin/rooms', 'Rooms', BookOpen),
       ] },
       { groupTitle: 'Updates', items: [link('/super-admin/notifications', 'Notifications', Bell)] },
-      { groupTitle: 'Account', items: [link('/super-admin/profile', 'Profile', User)] },
     ],
   };
 
-  const navGroups = roleNav[role] || (role && role !== 'student' ? adminNavGroups : studentNavGroups);
+  const isProfileLink = (item) => item.to === '/profile' || item.to.endsWith('/profile');
+  const navGroups = (roleNav[role] || (role && role !== 'student' ? adminNavGroups : studentNavGroups))
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !isProfileLink(item)),
+    }))
+    .filter((group) => group.items.length);
+
+  const accountName = user?.name || 'Account';
 
   return (
     <>
@@ -258,7 +250,29 @@ const Sidebar = ({
           ))}
         </div>
 
-        <div className="sidebar-logout-footer">
+        <div className="sidebar-footer">
+          <NavLink
+            to={profilePath(role)}
+            className={({ isActive }) => `sidebar-account ${isActive ? 'active' : ''}`}
+            title={collapsed ? accountName : undefined}
+            aria-label={`${accountName}, ${roleLabel(role)}`}
+            onClick={() => isMobileOpen && onCloseMobile()}
+          >
+            <Avatar
+              src={user?.profileImage || user?.avatar}
+              name={accountName}
+              size="sm"
+            />
+            {!collapsed && (
+              <>
+                <span className="sidebar-account-copy">
+                  <span className="sidebar-account-name">{accountName}</span>
+                  <span className="sidebar-account-role">{roleLabel(role)}</span>
+                </span>
+                <ChevronRight size={16} className="sidebar-account-chevron" aria-hidden="true" />
+              </>
+            )}
+          </NavLink>
           <button
             type="button"
             className="sidebar-logout-btn"
@@ -266,7 +280,7 @@ const Sidebar = ({
             title="Log out"
             aria-label="Log out"
           >
-            <LogOut size={18} />
+            <LogOut size={16} />
             {!collapsed && <span>Log out</span>}
           </button>
         </div>
