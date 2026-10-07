@@ -14,7 +14,8 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { canAccess, roleLabel } from '../../utils/roles';
+import { canAccess, profilePath, roleLabel } from '../../utils/roles';
+import Avatar from '../common/Avatar';
 import './Layout.css';
 
 const Sidebar = ({
@@ -23,13 +24,19 @@ const Sidebar = ({
   isMobileOpen = false,
   onCloseMobile,
 }) => {
-  const { role, logout } = useAuth();
+  const { user, role, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
+
+  const accountName = user?.name || 'Account';
+  const accountRole = roleLabel(role);
+  const showRole = Boolean(accountRole)
+    && accountName.trim().toLowerCase() !== accountRole.trim().toLowerCase();
+  const showAccountCopy = !collapsed || isMobileOpen;
 
   const studentNavGroups = [
     {
@@ -49,12 +56,6 @@ const Sidebar = ({
       groupTitle: 'Updates',
       items: [
         { to: '/notifications', label: 'Notifications', icon: Bell },
-      ],
-    },
-    {
-      groupTitle: 'Account',
-      items: [
-        { to: '/profile', label: 'My Profile', icon: User },
       ],
     },
   ];
@@ -101,12 +102,6 @@ const Sidebar = ({
         { to: '/admin/announcements', label: 'Announcements', icon: Megaphone, roles: ['admin', 'super_admin'] },
       ],
     },
-    {
-      groupTitle: 'Account',
-      items: [
-        { to: '/admin/profile', label: 'Profile', icon: User, roles: staffRoles },
-      ],
-    },
   ].map((group) => ({
     ...group,
     items: group.items.filter((item) => canAccess(role, item.roles)),
@@ -121,7 +116,6 @@ const Sidebar = ({
         link('/student/results', 'Results', Award),
       ] },
       { groupTitle: 'Updates', items: [link('/student/notifications', 'Notifications', Bell)] },
-      { groupTitle: 'Account', items: [link('/student/profile', 'Profile', User)] },
     ],
     faculty: [
       { items: [link('/faculty/dashboard', 'Dashboard', LayoutDashboard)] },
@@ -130,7 +124,6 @@ const Sidebar = ({
         link('/faculty/schedule', 'My Schedule', BookOpen),
       ] },
       { groupTitle: 'Updates', items: [link('/faculty/notifications', 'Notifications', Bell)] },
-      { groupTitle: 'Account', items: [link('/faculty/profile', 'Profile', User)] },
     ],
     department_admin: [
       { items: [link('/department-admin/dashboard', 'Dashboard', LayoutDashboard)] },
@@ -143,7 +136,6 @@ const Sidebar = ({
         link('/department-admin/schedules', 'Department Schedules', Calendar),
       ] },
       { groupTitle: 'Updates', items: [link('/department-admin/notifications', 'Notifications', Bell)] },
-      { groupTitle: 'Account', items: [link('/department-admin/profile', 'Profile', User)] },
     ],
     examination_cell: [
       { items: [link('/examination-cell/dashboard', 'Dashboard', LayoutDashboard)] },
@@ -156,7 +148,6 @@ const Sidebar = ({
         link('/examination-cell/rooms', 'Rooms', BookOpen),
       ] },
       { groupTitle: 'Updates', items: [link('/examination-cell/notifications', 'Notifications', Bell)] },
-      { groupTitle: 'Account', items: [link('/examination-cell/profile', 'Profile', User)] },
     ],
     super_admin: [
       { items: [link('/super-admin/dashboard', 'Dashboard', LayoutDashboard)] },
@@ -171,7 +162,6 @@ const Sidebar = ({
         link('/super-admin/rooms', 'Rooms', BookOpen),
       ] },
       { groupTitle: 'Updates', items: [link('/super-admin/notifications', 'Notifications', Bell)] },
-      { groupTitle: 'Account', items: [link('/super-admin/profile', 'Profile', User)] },
     ],
   };
 
@@ -188,6 +178,8 @@ const Sidebar = ({
       )}
 
       <aside
+        id="app-sidebar"
+        aria-label="Main navigation"
         className={`app-sidebar ${collapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}
       >
         {/* Brand Header */}
@@ -259,15 +251,33 @@ const Sidebar = ({
         </div>
 
         <div className="sidebar-logout-footer">
+          <NavLink
+            to={profilePath(role)}
+            className={({ isActive }) => `sidebar-account ${isActive ? 'active' : ''}`}
+            title={showAccountCopy ? undefined : accountName}
+            aria-label={showRole ? `${accountName}, ${accountRole}` : accountName}
+            onClick={() => isMobileOpen && onCloseMobile()}
+          >
+            <Avatar
+              src={user?.profileImage || user?.avatar}
+              name={accountName}
+              size="sm"
+            />
+            {showAccountCopy && (
+              <span className="sidebar-account-copy">
+                <span className="sidebar-account-name">{accountName}</span>
+                {showRole && <span className="sidebar-account-role">{accountRole}</span>}
+              </span>
+            )}
+          </NavLink>
           <button
             type="button"
-            className="sidebar-logout-btn"
+            className="sidebar-logout-btn btn btn-ghost btn-ghost-danger"
             onClick={handleLogout}
             title="Log out"
             aria-label="Log out"
           >
             <LogOut size={18} />
-            {!collapsed && <span>Log out</span>}
           </button>
         </div>
       </aside>

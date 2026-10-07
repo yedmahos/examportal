@@ -15,10 +15,13 @@ const Button = ({
   onClick,
   ...rest
 }) => {
+  const label = typeof children === 'string' ? children.trim().toLowerCase() : '';
+  const isDangerGhost = label === 'cancel' || label === 'log out' || label === 'logout';
+
   return (
     <button
       type={type}
-      className={`btn btn-${variant} btn-${size} ${fullWidth ? 'btn-full' : ''} ${isLoading ? 'btn-loading' : ''} ${className}`}
+      className={`btn btn-${variant} btn-${size} ${isDangerGhost ? 'btn-ghost-danger' : ''} ${fullWidth ? 'btn-full' : ''} ${isLoading ? 'btn-loading' : ''} ${className}`}
       disabled={disabled || isLoading}
       onClick={onClick}
       {...rest}

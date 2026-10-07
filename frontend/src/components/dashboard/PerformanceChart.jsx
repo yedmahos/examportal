@@ -52,8 +52,8 @@ const PerformanceChart = ({ data = [] }) => {
       >
         <defs>
           <linearGradient id="gpaGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#6C5DD3" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#6C5DD3" stopOpacity="0.0" />
+            <stop offset="0%" stopColor="#2563eb" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="#2563eb" stopOpacity="0.0" />
           </linearGradient>
         </defs>
 
@@ -100,7 +100,7 @@ const PerformanceChart = ({ data = [] }) => {
         <path
           d={gpaPath}
           fill="none"
-          stroke="#6C5DD3"
+          stroke="#2563eb"
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -119,7 +119,7 @@ const PerformanceChart = ({ data = [] }) => {
                 cy={cy}
                 r={isHovered ? 6 : 4}
                 fill="#FFFFFF"
-                stroke="#6C5DD3"
+                stroke="#2563eb"
                 strokeWidth="2.5"
                 className="chart-point"
               />
@@ -175,7 +175,7 @@ const PerformanceChart = ({ data = [] }) => {
             <text x="0" y="0" textAnchor="middle" className="chart-tooltip-title">
               {data[hoveredIndex].semester}
             </text>
-            <circle cx="-42" cy="14" r="3" fill="#6C5DD3" />
+            <circle cx="-42" cy="14" r="3" fill="#2563eb" />
             <text x="-32" y="18" className="chart-tooltip-text">
               Your: <tspan fontWeight="700">{data[hoveredIndex].gpa.toFixed(2)}</tspan>
             </text>
