@@ -57,7 +57,8 @@
 
 /* Sidebar Brand */
 .sidebar-brand-row {
-  padding: 22px 16px 14px;
+  height: var(--topbar-height);
+  padding: 0 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -80,15 +81,16 @@
 }
 
 .sidebar-logo-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: var(--color-primary-light);
-  color: var(--color-primary);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #6C5DD3 0%, #4D3DB3 100%);
+  color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(108, 93, 211, 0.3);
   border: none;
   padding: 0;
   cursor: default;
@@ -105,18 +107,17 @@
 }
 
 .sidebar-app-name {
-  font-size: 0.98rem;
-  font-weight: 700;
+  font-size: 1.15rem;
+  font-weight: 800;
   color: var(--color-text-primary);
   line-height: 1.2;
-  letter-spacing: -0.01em;
 }
 
 .sidebar-app-role {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--color-text-muted);
-  font-weight: 500;
-  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .sidebar-collapse-toggle {
@@ -155,10 +156,10 @@
 .sidebar-nav-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 12px 16px;
+  padding: 20px 14px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .app-sidebar.collapsed .sidebar-nav-scroll {
@@ -190,13 +191,13 @@
 .sidebar-nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: 10px;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
   color: var(--color-text-secondary);
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  transition: all var(--transition-fast);
   text-decoration: none;
   position: relative;
 }
@@ -214,18 +215,17 @@
 .sidebar-nav-item.active {
   background-color: var(--color-primary-light);
   color: var(--color-primary);
-  font-weight: 600;
 }
 
 .sidebar-nav-item.active::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 8px;
-  bottom: 8px;
-  width: 3px;
+  top: 6px;
+  bottom: 6px;
+  width: 4px;
   background-color: var(--color-primary);
-  border-radius: 0 3px 3px 0;
+  border-radius: 0 4px 4px 0;
 }
 
 .nav-item-icon {
@@ -242,96 +242,36 @@
   text-overflow: ellipsis;
 }
 
-.sidebar-footer {
-  padding: 12px;
+.sidebar-logout-footer {
+  padding: 14px 16px;
   border-top: 1px solid var(--color-border-subtle);
   flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 
-.app-sidebar.collapsed .sidebar-footer {
+.app-sidebar.collapsed .sidebar-logout-footer {
   padding: 12px 8px;
-}
-
-.sidebar-account {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px;
-  border-radius: 12px;
-  text-decoration: none;
-  color: inherit;
-  min-width: 0;
-}
-
-.sidebar-account:hover,
-.sidebar-account.active {
-  background-color: var(--color-surface-hover);
-}
-
-.app-sidebar.collapsed .sidebar-account {
-  justify-content: center;
-  padding: 8px 4px;
-}
-
-.sidebar-account-copy {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1;
-}
-
-.sidebar-account-name {
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.25;
-}
-
-.sidebar-account-role {
-  font-size: 0.72rem;
-  color: var(--color-text-muted);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.3;
-}
-
-.sidebar-account-chevron {
-  color: var(--color-text-muted);
-  flex-shrink: 0;
 }
 
 .sidebar-logout-btn {
   width: 100%;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  color: var(--color-text-secondary);
-  font-size: 0.84rem;
-  font-weight: 500;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  transition: all var(--transition-fast);
 }
 
 .app-sidebar.collapsed .sidebar-logout-btn {
-  justify-content: center;
   padding: 12px;
 }
 
 .sidebar-logout-btn:hover {
-  background-color: var(--color-surface-hover);
-  color: var(--color-text-primary);
+  background-color: var(--color-error-bg);
 }
 
 /* Mobile Sidebar Drawer */
