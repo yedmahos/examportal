@@ -22,7 +22,6 @@ import ScheduleRightRail from '../../components/dashboard/ScheduleRightRail';
 import LoadingState from '../../components/common/LoadingState';
 import ErrorState from '../../components/common/ErrorState';
 import './AdminPages.css';
-import '../../components/dashboard/RoleDashboards.css';
 
 const AdminDashboard = () => {
   const { role } = useAuth();
@@ -54,7 +53,7 @@ const AdminDashboard = () => {
   const { stats, recentActivities, recentResults, examTrends, upcomingSchedule } = data;
 
   return (
-    <div className="admin-dashboard-page role-dashboard animate-fade-in">
+    <div className="admin-dashboard-page animate-fade-in">
       {/* 5-6 Stat Cards Top Rows */}
       <div className="admin-stats-grid">
         <StatCard
