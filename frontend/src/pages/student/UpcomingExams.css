@@ -1,0 +1,298 @@
+/* Student dashboard: Upcoming Examinations only. */
+
+.transcend .upcoming-exams {
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--surface-border);
+  border-radius: 18px;
+  box-shadow: var(--surface-shadow);
+  padding: 1.15rem 1.25rem 1.2rem;
+}
+
+.transcend .upcoming-exams-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  min-width: 0;
+  margin-bottom: 0.95rem;
+}
+
+.transcend .upcoming-exams-title {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.transcend .upcoming-exams-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--primary);
+}
+
+.transcend h3.upcoming-exams-heading {
+  margin: 0;
+  min-width: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: normal;
+  color: var(--text-main);
+  overflow-wrap: anywhere;
+}
+
+.transcend .upcoming-exams-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  flex-shrink: 0;
+  margin-left: auto;
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.transcend .upcoming-exams-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.transcend .upcoming-exam-row {
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid var(--surface-border);
+  border-radius: 16px;
+  box-shadow: none;
+  padding: 0.95rem 1rem 0.85rem;
+}
+
+.transcend .upcoming-exam-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.transcend .upcoming-exam-identity {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.55rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.transcend h4.upcoming-exam-subject {
+  margin: 0;
+  min-width: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: normal;
+  color: var(--text-main);
+  overflow-wrap: break-word;
+}
+
+.transcend .upcoming-exam-type {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0.16rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: normal;
+  overflow-wrap: break-word;
+}
+
+.transcend .upcoming-exam-side {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.transcend .upcoming-exams .status-badge {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.3;
+  padding: 0.2rem 0.62rem;
+  white-space: normal;
+}
+
+.transcend .upcoming-exams .badge-info {
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.08);
+  border-color: transparent;
+}
+
+.transcend .upcoming-exam-chevron {
+  color: var(--text-subtle);
+  flex-shrink: 0;
+}
+
+.transcend .upcoming-exam-details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  row-gap: 0.85rem;
+  min-width: 0;
+  margin-top: 0.9rem;
+  padding-top: 0.15rem;
+}
+
+.transcend .upcoming-exam-detail {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  flex: 1 1 9.25rem;
+  min-width: min(100%, 9.25rem);
+  max-width: 100%;
+  padding: 0.05rem 0.95rem;
+  color: var(--text-muted);
+}
+
+.transcend .upcoming-exam-detail:first-child {
+  padding-left: 0;
+}
+
+.transcend .upcoming-exam-detail:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.15rem;
+  bottom: 0.15rem;
+  width: 1px;
+  background: rgba(226, 232, 240, 0.95);
+}
+
+.transcend .upcoming-exam-detail svg {
+  flex-shrink: 0;
+  margin-top: 0.12rem;
+}
+
+.transcend .upcoming-exam-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.transcend .upcoming-exam-copy span {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: normal;
+  color: var(--text-muted);
+  overflow-wrap: break-word;
+}
+
+.transcend .upcoming-exam-copy strong {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: normal;
+  color: var(--text-main);
+  overflow-wrap: break-word;
+}
+
+.transcend .upcoming-exam-detail.is-wide {
+  flex: 1 1 100%;
+  padding-left: 0;
+}
+
+.transcend .upcoming-exam-detail.is-wide::before {
+  display: none;
+}
+
+.transcend .upcoming-exams .upcoming-exams-empty.empty-state-wrap {
+  margin: 0;
+  padding: 1.35rem 0.5rem 0.85rem;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  min-height: 0;
+}
+
+.transcend .upcoming-exams .upcoming-exams-empty .empty-state-icon-box {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 0.65rem;
+}
+
+.transcend .upcoming-exams .upcoming-exams-empty .empty-state-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: normal;
+}
+
+.transcend .upcoming-exams .upcoming-exams-empty .empty-state-desc {
+  margin-bottom: 0;
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+
+@media (max-width: 860px) {
+  .transcend .upcoming-exam-detail {
+    flex-basis: calc(33.33% - 0.5rem);
+    min-width: min(100%, 8.5rem);
+  }
+}
+
+@media (max-width: 720px) {
+  .transcend .upcoming-exams-head,
+  .transcend .upcoming-exam-top {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .transcend .upcoming-exam-side {
+    margin-left: 0;
+  }
+
+  .transcend .upcoming-exam-detail {
+    flex-basis: calc(50% - 0.5rem);
+    min-width: min(100%, 8.5rem);
+  }
+
+  .transcend .upcoming-exam-detail::before {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .transcend .upcoming-exams {
+    padding: 1rem;
+  }
+
+  .transcend .upcoming-exam-row {
+    padding: 0.85rem 0.85rem 0.75rem;
+  }
+
+  .transcend .upcoming-exam-detail {
+    flex-basis: 100%;
+    min-width: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}

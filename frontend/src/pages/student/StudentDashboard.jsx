@@ -1,19 +1,34 @@
 import React, { useEffect, useState } from "react";
-import { Award, BookOpen, Calendar, Bell } from "lucide-react";
+import { Link } from "react-router-dom";
+import {
+  Award,
+  BookOpen,
+  Calendar,
+  Bell,
+  Clock,
+  Building2,
+  DoorOpen,
+  Hash,
+  Info,
+  ChevronRight,
+  ArrowRight,
+} from "lucide-react";
 import { dashboardService } from "../../services/dashboardService";
 import { seatingService } from "../../services/resourceService";
 import StatCard from "../../components/common/StatCard";
 import LoadingState from "../../components/common/LoadingState";
 import ErrorState from "../../components/common/ErrorState";
+import EmptyState from "../../components/common/EmptyState";
+import StatusBadge from "../../components/common/StatusBadge";
 import {
   DashboardShell,
   Panel,
   Split,
   UpdateList,
-  PaperList,
   TextLink,
   formatWhen,
 } from "../../components/dashboard/RoleSections";
+import "./UpcomingExams.css";
 
 const sameDay = (left, right) => {
   if (!left || !right) return false;
@@ -36,6 +51,93 @@ const timeRange = (exam) => {
   if (exam.startTime && exam.endTime) return `${exam.startTime} – ${exam.endTime}`;
   return exam.startTime || exam.endTime || "";
 };
+
+const DETAIL_FIELDS = [
+  { label: "Date", icon: Calendar },
+  { label: "Time", icon: Clock },
+  { label: "Reporting time", icon: Clock },
+  { label: "Building", icon: Building2 },
+  { label: "Room", icon: DoorOpen },
+  { label: "Seat", icon: Hash },
+  { label: "Examination", icon: BookOpen },
+  { label: "Instructions", icon: Info },
+];
+
+const fieldValue = (paper, label) => {
+  const row = (paper.rows || []).find((item) => item.label === label);
+  if (!row || row.value === undefined || row.value === null) return "";
+  return String(row.value).trim();
+};
+
+const UpcomingExamRow = ({ paper }) => {
+  const examType = fieldValue(paper, "Exam type");
+  const details = DETAIL_FIELDS
+    .map((field) => ({ ...field, value: fieldValue(paper, field.label) }))
+    .filter((field) => field.value)
+    .filter((field) => field.label !== "Examination" || field.value !== paper.title);
+
+  return (
+    <article className="upcoming-exam-row">
+      <div className="upcoming-exam-top">
+        <div className="upcoming-exam-identity">
+          <h4 className="upcoming-exam-subject">{paper.title}</h4>
+          {examType ? <span className="upcoming-exam-type">{examType}</span> : null}
+        </div>
+        <div className="upcoming-exam-side">
+          {paper.status ? <StatusBadge status={paper.status} size="sm" /> : null}
+          <ChevronRight className="upcoming-exam-chevron" size={18} strokeWidth={1.75} aria-hidden="true" />
+        </div>
+      </div>
+      {details.length ? (
+        <div className="upcoming-exam-details">
+          {details.map((field) => {
+            const Icon = field.icon;
+            const wide = field.label === "Instructions";
+            return (
+              <div className={`upcoming-exam-detail${wide ? " is-wide" : ""}`} key={field.label}>
+                <Icon size={16} strokeWidth={1.75} aria-hidden="true" />
+                <div className="upcoming-exam-copy">
+                  <span>{field.label}</span>
+                  <strong>{field.value}</strong>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+    </article>
+  );
+};
+
+const UpcomingExaminations = ({ papers }) => (
+  <section className="upcoming-exams" aria-labelledby="upcoming-exams-title">
+    <div className="upcoming-exams-head">
+      <div className="upcoming-exams-title">
+        <span className="upcoming-exams-icon" aria-hidden="true">
+          <Calendar size={18} strokeWidth={1.75} />
+        </span>
+        <h3 id="upcoming-exams-title" className="upcoming-exams-heading">Upcoming Examinations</h3>
+      </div>
+      <Link to="/exams" className="role-text-link upcoming-exams-link">
+        View schedule
+        <ArrowRight size={15} strokeWidth={2} aria-hidden="true" />
+      </Link>
+    </div>
+    {papers.length ? (
+      <div className="upcoming-exams-list">
+        {papers.map((paper, index) => (
+          <UpcomingExamRow key={paper.id || index} paper={paper} />
+        ))}
+      </div>
+    ) : (
+      <EmptyState
+        className="upcoming-exams-empty"
+        title="No upcoming examinations"
+        description="Examinations published for you will appear here."
+      />
+    )}
+  </section>
+);
 
 const paperFromExam = (exam, seats) => {
   const seat = matchSeat(exam, seats);
@@ -110,13 +212,7 @@ const StudentDashboard = () => {
 
   return (
     <DashboardShell title="Student Dashboard">
-      <Panel title="Upcoming Examinations" action={<TextLink to="/exams">View schedule</TextLink>}>
-        <PaperList
-          papers={upcoming.map((exam) => paperFromExam(exam, seats))}
-          emptyTitle="No upcoming examinations"
-          emptyDescription="Examinations published for you will appear here."
-        />
-      </Panel>
+      <UpcomingExaminations papers={upcoming.map((exam) => paperFromExam(exam, seats))} />
 
       <Split>
         <Panel title="Recent Results" action={<TextLink to="/results">View all results</TextLink>}>
