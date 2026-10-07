@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Award,
@@ -70,11 +70,32 @@ const fieldValue = (paper, label) => {
 };
 
 const UpcomingExamRow = ({ paper }) => {
+  const detailsRef = useRef(null);
   const examType = fieldValue(paper, "Exam type");
   const details = DETAIL_FIELDS
     .map((field) => ({ ...field, value: fieldValue(paper, field.label) }))
     .filter((field) => field.value)
     .filter((field) => field.label !== "Examination" || field.value !== paper.title);
+  const detailKey = details.map((field) => `${field.label}:${field.value}`).join("|");
+
+  useLayoutEffect(() => {
+    const root = detailsRef.current;
+    if (!root) return undefined;
+
+    const markRowStarts = () => {
+      const items = [...root.querySelectorAll(":scope > .upcoming-exam-detail")];
+      if (!items.length) return;
+      const rowLeft = Math.min(...items.map((item) => item.offsetLeft));
+      items.forEach((item) => {
+        item.classList.toggle("is-row-start", item.offsetLeft <= rowLeft + 1);
+      });
+    };
+
+    markRowStarts();
+    const observer = new ResizeObserver(markRowStarts);
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, [detailKey]);
 
   return (
     <article className="upcoming-exam-row">
@@ -89,7 +110,7 @@ const UpcomingExamRow = ({ paper }) => {
         </div>
       </div>
       {details.length ? (
-        <div className="upcoming-exam-details">
+        <div className="upcoming-exam-details" ref={detailsRef}>
           {details.map((field) => {
             const Icon = field.icon;
             const wide = field.label === "Instructions";

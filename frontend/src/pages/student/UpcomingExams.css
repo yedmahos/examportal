@@ -172,7 +172,8 @@
   color: var(--text-muted);
 }
 
-.transcend .upcoming-exam-detail:first-child {
+.transcend .upcoming-exam-detail:first-child,
+.transcend .upcoming-exam-detail.is-row-start {
   padding-left: 0;
 }
 
@@ -184,6 +185,11 @@
   bottom: 0.15rem;
   width: 1px;
   background: rgba(226, 232, 240, 0.95);
+}
+
+.transcend .upcoming-exam-detail.is-row-start::before,
+.transcend .upcoming-exam-detail:first-child::before {
+  display: none;
 }
 
 .transcend .upcoming-exam-detail svg {
