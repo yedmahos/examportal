@@ -1,0 +1,507 @@
+/* Transcend visual layer. Values are copied from UI_DESIGN_SYSTEM.md sections 3, 6, 7, 8, 11 and 12. */
+.transcend {
+  --bg-color: #ffffff;
+  --bg-mesh: #f8fafc;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-subtle: #94a3b8;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --accent: #0ea5e9;
+  --surface-color: rgba(255, 255, 255, 0.85);
+  --surface-border: rgba(226, 232, 240, 0.8);
+  --surface-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+  --surface-hover-shadow: 0 20px 40px rgba(37, 99, 235, 0.08);
+  --success: #10b981;
+  --success-bg: rgba(16, 185, 129, 0.1);
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.1);
+  --danger: #ef4444;
+  --danger-bg: rgba(239, 68, 68, 0.08);
+  --info: #0891b2;
+  --info-bg: rgba(6, 182, 212, 0.1);
+  --side-w: 264px;
+
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-active: #1d4ed8;
+  --color-primary-light: rgba(37, 99, 235, 0.08);
+  --color-primary-light-hover: rgba(37, 99, 235, 0.12);
+  --color-primary-text: #2563eb;
+  --color-secondary: #0ea5e9;
+  --color-secondary-light: rgba(6, 182, 212, 0.1);
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f8fafc;
+  --color-surface-hover: rgba(15, 23, 42, 0.03);
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #64748b;
+  --color-text-muted: #94a3b8;
+  --color-border: rgba(226, 232, 240, 0.8);
+  --color-border-subtle: rgba(226, 232, 240, 0.8);
+  --color-border-focus: #2563eb;
+  --color-success: #10b981;
+  --color-success-bg: rgba(16, 185, 129, 0.1);
+  --color-success-text: #10b981;
+  --color-warning: #f59e0b;
+  --color-warning-bg: rgba(245, 158, 11, 0.1);
+  --color-warning-text: #f59e0b;
+  --color-error: #ef4444;
+  --color-error-bg: rgba(239, 68, 68, 0.08);
+  --color-error-text: #ef4444;
+  --color-info: #0891b2;
+  --color-info-bg: rgba(6, 182, 212, 0.1);
+  --color-info-text: #0891b2;
+  --color-purple-badge: #2563eb;
+  --color-purple-badge-bg: rgba(37, 99, 235, 0.08);
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --shadow-sm: 0 10px 30px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 20px 40px rgba(37, 99, 235, 0.08);
+  --shadow-lg: 0 30px 60px rgba(15, 23, 42, 0.15);
+  --sidebar-width: 264px;
+  color-scheme: light;
+  position: relative;
+  min-height: 100vh;
+  color: var(--text-main);
+  font-family: var(--font-family);
+  background-color: var(--bg-color);
+  line-height: 1.6;
+}
+
+.transcend .bg-mesh {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-image:
+    linear-gradient(to right, rgba(226, 232, 240, 0.4) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(226, 232, 240, 0.4) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+}
+
+.transcend .bg-orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(120px);
+  z-index: -1;
+  opacity: 0.5;
+  animation: transcend-float 20s ease-in-out infinite alternate;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.transcend .orb-1 {
+  top: -10%;
+  left: 10%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.2) 0%, rgba(37, 99, 235, 0.1) 100%);
+}
+
+.transcend .orb-2 {
+  bottom: 10%;
+  right: -5%;
+  width: 40vw;
+  height: 40vw;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(236, 72, 153, 0.05) 100%);
+  animation-delay: -5s;
+}
+
+@keyframes transcend-float {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(5%, 5%) scale(1.05); }
+}
+
+.transcend :focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.transcend .btn {
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: none;
+  box-shadow: none;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.transcend .btn-primary {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.25);
+}
+
+.transcend .btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+  transform: translateY(-1px);
+}
+
+.transcend .btn-ghost {
+  background: transparent;
+  color: var(--text-main);
+}
+
+.transcend .btn-ghost:hover:not(:disabled) {
+  background: rgba(15, 23, 42, 0.05);
+  color: var(--text-main);
+}
+
+.transcend .btn-ghost-danger {
+  color: var(--danger);
+  background: transparent;
+  border-color: transparent;
+}
+
+.transcend .btn-ghost-danger:hover:not(:disabled) {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.transcend .btn-secondary,
+.transcend .btn-outline {
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--surface-border);
+}
+
+.transcend .btn-danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.transcend .btn:disabled,
+.transcend .btn[disabled] {
+  background: rgba(15, 23, 42, 0.05);
+  color: var(--text-subtle);
+  box-shadow: none;
+  transform: none;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.transcend .input-element,
+.transcend .select-element,
+.transcend textarea {
+  border-radius: 12px;
+  border: 1px solid var(--surface-border);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-main);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.transcend .input-element:focus,
+.transcend .select-element:focus,
+.transcend textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+}
+
+.transcend .page-heading,
+.transcend .role-dashboard h1,
+.transcend .admin-dashboard-page h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+  color: var(--text-main);
+}
+
+.transcend .page-subheading,
+.transcend .card-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.transcend .stat-card,
+.transcend .card-panel,
+.transcend .admin-panel-card,
+.transcend .data-table-container,
+.transcend .empty-state-wrap,
+.transcend .profile-hero-card,
+.transcend .auth-card-wrapper {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--surface-shadow);
+}
+
+.transcend .stat-card {
+  border-radius: 20px;
+}
+
+.transcend .card-panel,
+.transcend .admin-panel-card,
+.transcend .data-table-container,
+.transcend .auth-card-wrapper {
+  border-radius: 24px;
+}
+
+.transcend .stat-card:hover,
+.transcend .card-panel:hover,
+.transcend .admin-panel-card:hover {
+  box-shadow: var(--surface-hover-shadow);
+}
+
+.transcend .stat-icon-chip {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: var(--primary) !important;
+}
+
+.transcend .stat-card-label,
+.transcend .table-th {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.transcend .stat-value {
+  font-size: 1.85rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-main);
+}
+
+.transcend .custom-data-table .table-th {
+  background: rgba(15, 23, 42, 0.015);
+}
+
+.transcend .table-td {
+  font-size: 0.88rem;
+  color: var(--text-main);
+}
+
+.transcend .table-responsive {
+  overflow-x: auto;
+}
+
+.transcend .status-badge {
+  border-radius: 50px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: #ffffff;
+  border: 1px solid var(--surface-border);
+}
+
+.transcend .badge-success { color: var(--success); border-color: rgba(16, 185, 129, 0.2); background: var(--success-bg); }
+.transcend .badge-warning,
+.transcend .badge-pending { color: var(--warning); border-color: rgba(245, 158, 11, 0.2); background: var(--warning-bg); }
+.transcend .badge-danger,
+.transcend .badge-error { color: var(--danger); border-color: rgba(239, 68, 68, 0.2); background: var(--danger-bg); }
+.transcend .badge-info,
+.transcend .badge-neutral { color: var(--text-muted); background: rgba(15, 23, 42, 0.05); }
+
+.transcend .modal-container {
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--surface-border);
+  box-shadow: 0 30px 60px rgba(15, 23, 42, 0.15);
+}
+
+.transcend .modal-backdrop {
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+.transcend .toast-item {
+  background: var(--text-main);
+  color: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.transcend .app-sidebar {
+  width: var(--side-w);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid var(--surface-border);
+}
+
+.transcend .sidebar-logo-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+}
+
+.transcend .sidebar-app-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text-main);
+}
+
+.transcend .sidebar-app-role,
+.transcend .sidebar-group-label {
+  color: var(--text-subtle);
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+}
+
+.transcend .sidebar-nav-item {
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 0.7rem 0.9rem;
+}
+
+.transcend .sidebar-nav-item:hover {
+  background: rgba(37, 99, 235, 0.06);
+  color: var(--primary);
+}
+
+.transcend .sidebar-nav-item.active {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--primary);
+}
+
+.transcend .sidebar-nav-item.active::before {
+  display: none;
+}
+
+.transcend .sidebar-account {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 12px;
+  border: 1px solid var(--surface-border);
+  background: rgba(15, 23, 42, 0.03);
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+
+.transcend .sidebar-account-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.transcend .sidebar-account-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transcend .sidebar-account-role {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transcend .sidebar-account-chevron {
+  color: var(--text-subtle);
+  flex-shrink: 0;
+}
+
+.transcend .sidebar-logout-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.transcend .sidebar-logout-btn {
+  width: 100%;
+  justify-content: flex-start;
+  border-radius: 12px;
+  color: var(--danger);
+  background: transparent;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.transcend .sidebar-logout-btn:hover {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.transcend .app-sidebar.collapsed .sidebar-account,
+.transcend .app-sidebar.collapsed .sidebar-logout-btn {
+  justify-content: center;
+}
+
+.transcend .shell-notif-btn,
+.transcend .shell-menu-toggle {
+  background: #ffffff;
+  border: 1px solid var(--surface-border);
+  border-radius: 50%;
+  box-shadow: var(--surface-shadow);
+  color: var(--text-muted);
+}
+
+.transcend .shell-notif-btn:hover,
+.transcend .shell-notif-btn.active,
+.transcend .shell-menu-toggle:hover {
+  color: var(--primary);
+}
+
+.transcend .auth-logo-icon {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+}
+
+.transcend .tab-btn.active,
+.transcend .filter-btn.active {
+  color: var(--primary);
+  background: #ffffff;
+}
+
+@media (max-width: 640px) {
+  .transcend .app-content-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .transcend .page-heading,
+  .transcend .role-dashboard h1 {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 480px) {
+  .transcend .stat-card {
+    align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .transcend .bg-orb,
+  .transcend .app-sidebar,
+  .transcend .sidebar-mobile-backdrop,
+  .transcend .btn,
+  .transcend .card-panel,
+  .transcend .stat-card {
+    animation: none !important;
+    transition: none !important;
+  }
+}

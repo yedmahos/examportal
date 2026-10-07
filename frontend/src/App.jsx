@@ -9,7 +9,12 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <ToastProvider>
-          <AppRoutes />
+          <div className="transcend">
+            <div className="bg-mesh" aria-hidden="true" />
+            <div className="bg-orb orb-1" aria-hidden="true" />
+            <div className="bg-orb orb-2" aria-hidden="true" />
+            <AppRoutes />
+          </div>
         </ToastProvider>
       </AuthProvider>
     </BrowserRouter>

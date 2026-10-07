@@ -14,7 +14,8 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { canAccess, roleLabel } from '../../utils/roles';
+import { canAccess, profilePath, roleLabel } from '../../utils/roles';
+import Avatar from '../common/Avatar';
 import './Layout.css';
 
 const Sidebar = ({
@@ -23,7 +24,7 @@ const Sidebar = ({
   isMobileOpen = false,
   onCloseMobile,
 }) => {
-  const { role, logout } = useAuth();
+  const { user, role, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -188,6 +189,8 @@ const Sidebar = ({
       )}
 
       <aside
+        id="app-sidebar"
+        aria-label="Main navigation"
         className={`app-sidebar ${collapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}
       >
         {/* Brand Header */}
@@ -259,9 +262,31 @@ const Sidebar = ({
         </div>
 
         <div className="sidebar-logout-footer">
+          <NavLink
+            to={profilePath(role)}
+            className={({ isActive }) => `sidebar-account ${isActive ? 'active' : ''}`}
+            title={collapsed ? (user?.name || 'Account') : undefined}
+            aria-label={`${user?.name || 'Account'}, ${roleLabel(role)}`}
+            onClick={() => isMobileOpen && onCloseMobile()}
+          >
+            <Avatar
+              src={user?.profileImage || user?.avatar}
+              name={user?.name || 'Account'}
+              size="sm"
+            />
+            {!collapsed && (
+              <>
+                <span className="sidebar-account-copy">
+                  <span className="sidebar-account-name">{user?.name || 'Account'}</span>
+                  <span className="sidebar-account-role">{roleLabel(role)}</span>
+                </span>
+                <ChevronRight size={16} className="sidebar-account-chevron" aria-hidden="true" />
+              </>
+            )}
+          </NavLink>
           <button
             type="button"
-            className="sidebar-logout-btn"
+            className="sidebar-logout-btn btn btn-ghost btn-ghost-danger"
             onClick={handleLogout}
             title="Log out"
             aria-label="Log out"

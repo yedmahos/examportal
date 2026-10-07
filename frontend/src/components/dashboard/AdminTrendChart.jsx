@@ -40,8 +40,8 @@ const AdminTrendChart = ({ data = [] }) => {
       <svg viewBox={`0 0 ${width} ${height}`} className="performance-svg" preserveAspectRatio="xMidYMid meet">
         <defs>
           <linearGradient id="adminChartGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#6C5DD3" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="#6C5DD3" stopOpacity="0.0" />
+            <stop offset="0%" stopColor="#2563eb" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="#2563eb" stopOpacity="0.0" />
           </linearGradient>
         </defs>
 
@@ -55,7 +55,7 @@ const AdminTrendChart = ({ data = [] }) => {
                 y1={y}
                 x2={width - paddingRight}
                 y2={y}
-                stroke="#EEF0F4"
+                stroke="rgba(226, 232, 240, 0.8)"
                 strokeDasharray="4 4"
                 strokeWidth="1"
               />
@@ -73,7 +73,7 @@ const AdminTrendChart = ({ data = [] }) => {
         <path
           d={completedPath}
           fill="none"
-          stroke="#22C55E"
+          stroke="#10b981"
           strokeWidth="2"
           strokeDasharray="4 4"
         />
@@ -82,7 +82,7 @@ const AdminTrendChart = ({ data = [] }) => {
         <path
           d={scheduledPath}
           fill="none"
-          stroke="#6C5DD3"
+          stroke="#2563eb"
           strokeWidth="2.5"
           strokeLinecap="round"
         />
@@ -90,8 +90,8 @@ const AdminTrendChart = ({ data = [] }) => {
         {/* Points */}
         {data.map((d, i) => (
           <g key={`pt-${i}`}>
-            <circle cx={getX(i)} cy={getY(d.scheduled)} r={4} fill="#FFFFFF" stroke="#6C5DD3" strokeWidth="2" />
-            <circle cx={getX(i)} cy={getY(d.completed)} r={3} fill="#22C55E" />
+            <circle cx={getX(i)} cy={getY(d.scheduled)} r={4} fill="#FFFFFF" stroke="#2563eb" strokeWidth="2" />
+            <circle cx={getX(i)} cy={getY(d.completed)} r={3} fill="#10b981" />
             <text x={getX(i)} y={paddingTop + chartHeight + 20} textAnchor="middle" className="chart-axis-label-x">
               {d.term}
             </text>
